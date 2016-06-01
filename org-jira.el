@@ -476,9 +476,7 @@ See`org-jira-get-issue-list'"
                    (issue-id (org-jira-get-issue-key issue))
                    (issue-summary (org-jira-get-issue-summary issue))
                    (issue-headline issue-summary))
-              (let ((project-file (expand-file-name (concat proj-key ".org") org-jira-working-dir))
-                    (coding-system-for-read 'utf-8)
-                    (coding-system-for-write 'utf-8))
+              (let ((project-file (expand-file-name (concat proj-key ".org") org-jira-working-dir)))
                 (setq project-buffer (or (find-buffer-visiting project-file)
                                          (find-file project-file)))
                 (with-current-buffer project-buffer

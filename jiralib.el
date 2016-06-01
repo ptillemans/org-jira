@@ -261,11 +261,11 @@ when invoking it through `jiralib-call', the call shoulbe be:
                        (format "/rest/api/2/project/%s/components" (first params))))
       ('getIssue (jiralib--rest-call-it
                   (format "/rest/api/2/issue/%s" (first params))))
-      ('getIssuesFromJqlSearch  (append (cdr ( assoc 'issues (jiralib--rest-call-it
-                                                              "/rest/api/2/search"
-                                                              :type "POST"
-                                                              :data (json-encode `((jql . ,(first params))
-                                                                                   (maxResults . ,(second params))))))) nil))
+      ('getIssuesFromJqlSearch (append (cdr ( assoc 'issues (jiralib--rest-call-it
+                                                             "/rest/api/2/search"
+                                                             :type "POST"
+                                                             :data (json-encode `((jql . ,(first params))
+                                                                                  (maxResults . ,(second params))))))) nil))
       ('getPriorities (jiralib--rest-call-it
                        "/rest/api/2/priority"))
       ('getProjectsNoSchemes (append (jiralib--rest-call-it
@@ -297,6 +297,11 @@ when invoking it through `jiralib-call', the call shoulbe be:
   (let ((jiralib-token nil)
         (jiralib-use-restapi nil)) (apply #'jiralib-call args)))
 
+(defun utf-8-parser ()
+  "Decode the HTTP response using the charset UTF-8."
+  (decode-coding-region (point-min) (point-max) 'utf-8)
+  (json-read))
+
 (defun jiralib--rest-call-it (api &rest args)
   "Invoke the corresponding jira rest method API, passing ARGS to REQUEST."
   (append (request-response-data
@@ -304,7 +309,7 @@ when invoking it through `jiralib-call', the call shoulbe be:
                                     (replace-regexp-in-string "^/*" "" api))
                   :sync t
                   :headers `(,jiralib-token ("Content-Type" . "application/json"))
-                  :parser 'json-read
+                  :parser 'utf-8-parser
                   args)) nil))
 
 (defun jiralib--call-it (method &rest params)
