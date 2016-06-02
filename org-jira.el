@@ -550,7 +550,8 @@ See`org-jira-get-issue-list'"
                     (org-jira-update-worklogs-for-current-issue)
                     )))))
           issues)
-    (switch-to-buffer project-buffer)))
+    (switch-to-buffer project-buffer)
+    (delete-trailing-whitespace)))
 
 ;;;###autoload
 (defun org-jira-update-comment ()
