@@ -269,18 +269,22 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
     (while (and keys (listp l))
       (setq key (car keys))
       (setq exists nil)
-      (mapc (lambda (item)
-              (when (equal key (car item))
-                (setq exists t)))
-            (if (and (listp l)
-                     (listp (car l)))
-                l
-              nil))
+      (catch 'exitmap
+        (mapc (lambda (item)
+                (when (equal key (car item))
+                  (setq exists t)
+                  (throw 'exitmap item)))
+              (if (and (listp l)
+                       (listp (car l)))
+                  l
+                nil)))
       (setq keys (cdr keys))
       (if exists
           (setq l (cdr (assoc key l)))
         (setq l (or (cdr (assoc key l)) l))))
-    l))
+    (if exists
+        l
+      nil)))
 
 (defun org-jira-get-project-lead (proj)
   (org-jira-find-value proj 'lead 'name))
