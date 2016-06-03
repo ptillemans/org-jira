@@ -99,19 +99,6 @@ This will be used with USERNAME to compute password from
 
 (defvar jiralib-mode-map nil)
 
-(defcustom jiralib-wsdl-descriptor-url
-  ""
-  "The location for the WSDL descriptor for the JIRA service.
-This is specific to your local JIRA installation.  The URL is
-tipically:
-
-  http://YOUR_INSTALLATION/rpc/soap/jirasoapservice-v2?wsdl
-
-The default value works if JIRA is located at a hostname named
-'jira'."
-  :type 'string
-  :group 'jiralib)
-
 (defcustom jiralib-url
   "http://localhost:8081/"
   "The address of the jira host."
@@ -127,14 +114,6 @@ The default value works if JIRA is located at a hostname named
 (defvar jiralib-user-login-name nil
   "The name of the user logged into JIRA.
 This is maintained by `jiralib-login'.")
-
-(defvar jiralib-wsdl nil)
-
-(defun jiralib-load-wsdl ()
-  "Load the JIRA WSDL descriptor."
-  (setq jiralib-wsdl (soap-load-wsdl-from-url (if (string-equal jiralib-wsdl-descriptor-url "")
-                                                  (concat jiralib-url "/rpc/soap/jirasoapservice-v2?wsdl")
-                                                jiralib-wsdl-descriptor-url))))
 
 (defun jiralib-login (username password)
   "Login into JIRA as user USERNAME with PASSWORD.
@@ -283,27 +262,6 @@ when invoking it through `jiralib-call', the call shoulbe be:
                   :parser 'utf-8-parser
                   args)) nil))
 
-(defun jiralib--call-it (method &rest params)
-  "Invoke the JIRA METHOD with supplied PARAMS.
-
-Internal use, returns a list of responses, of which only the
-first is normally used."
-  (when (symbolp method)
-    (setq method (symbol-name method)))
-  (unless jiralib-token
-    (call-interactively 'jiralib-login))
-  (condition-case data
-      (apply 'soap-invoke jiralib-wsdl "jirasoapservice-v2"
-             method jiralib-token params)
-    (soap-error
-     ;; If we are here, we had a token, but it expired.  Re-login and try
-     ;; again.
-     (setq jiralib-token nil)
-     (call-interactively 'jiralib-login)
-     (apply 'soap-invoke jiralib-wsdl "jirasoapservice-v2"
-            method jiralib-token params))))
-
-
 ;;;; Some utility functions
 
 (defun jiralib-make-list (data field)
@@ -467,7 +425,7 @@ query."
 
 (defun jiralib-get-available-actions (issue-key)
   "Return the available workflow actions for ISSUE-KEY.
-This runs the getAvailableActions SOAP method."
+This runs the getAvailableActions REST method."
   (jiralib-make-assoc-list
    (jiralib-call "getAvailableActions" issue-key)
    'id 'name))
