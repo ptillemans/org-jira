@@ -460,10 +460,11 @@ With a prefix argument, allow you to customize the jql.  See
       (delete-region (point-min) (point-max))
 
       (mapc (lambda (issue)
-              (let ((issue-id (org-jira-get-issue-key issue))
-                    (issue-summary (org-jira-get-issue-summary issue)))
+              (let* ((issue-id (cdr (assoc 'key issue)))
+                     (fields (cdr(assoc 'fields issue)))
+                     (issue-summary (cdr (assoc 'summary fields))))
                 (insert (format "- [jira:%s] %s\n" issue-id issue-summary))))
-            issues))
+            (append (cdr (assoc 'issues issues)) nil)))
     (switch-to-buffer issues-headonly-buffer)))
 
 ;;;###autoload
