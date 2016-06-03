@@ -72,73 +72,9 @@
 (defvar jira-users (list (cons "Full Name" "username"))
   "Jira has not api for discovering all users, so we should provide it somewhere else.")
 
-(defcustom org-jira-serv-alist nil
-  "Association list to set information for each jira server.
-Each element of the alist is a jira server name.  The CAR of each
-element is a string, uniquely identifying the server.  The CDR of
-each element is a well-formed property list with an even number
-of elements, alternating keys and values, specifying parameters
-for the server.
-
-     (:property value :property value ... )
-
-When a property is given a value in org-jira-serv-alist, its
-setting overrides the value of the corresponding user
-variable (if any) during syncing.
-
-Most properties are optional, but some should always be set:
-
-  :url        soap url of the jira server.
-  :username   username to be used.
-  :host       hostname of the jira server (TODO: compute it from ~url~).
-
-All the other properties are optional.  They override the global
-variables.
-
-  :password   password to be used, will be prompted if missing."
-  :group 'org-jira
-  :type '(alist :value-type plist))
-
 (defcustom org-jira-use-status-as-todo nil
   "Use the JIRA status as the TODO tag value."
   :group 'org-jira)
-
-(defvar org-jira-serv nil
-  "Parameters of the currently selected blog.")
-
-(defvar org-jira-serv-name nil
-  "Name of the blog, to pick from `org-jira-serv-alist'.")
-
-(defvar org-jira-projects-list nil
-  "List of jira projects.")
-
-(defvar org-jira-current-project nil
-  "Currently selected (i.e., active project).")
-
-(defvar org-jira-issues-list nil
-  "List of jira issues under the current project.")
-
-(defvar org-jira-server-rpc-url nil
-  "Jira server soap URL.")
-
-(defvar org-jira-server-userid nil
-  "Jira server user id.")
-
-(defvar org-jira-proj-id nil
-  "Jira project ID.")
-
-(defvar org-jira-logged-in nil
-  "Flag whether user is logged-in or not.")
-
-(defvar org-jira-buffer-name "*org-jira-%s*"
-  "Name of the jira buffer.")
-
-(defvar org-jira-buffer-kill-prompt t
-  "Ask before killing buffer.")
-(make-variable-buffer-local 'org-jira-buffer-kill-prompt)
-
-(defconst org-jira-version "0.1"
-  "Current version of org-jira.el.")
 
 (defvar org-jira-mode-hook nil
   "Hook to run upon entry into mode.")
@@ -225,16 +161,6 @@ variables.
                      (cdr x))
                    dhash))
         dlist))
-
-(defun org-jira-kill-buffer-hook ()
-  "Prompt before killing buffer."
-  (if (and org-jira-buffer-kill-prompt
-           (not (buffer-file-name)))
-      (if (y-or-n-p "Save Jira? ")
-          (progn
-            (save-buffer)
-            (org-jira-save-details (org-jira-parse-entry) nil
-                                   (y-or-n-p "Published? "))))))
 
 (defvar org-jira-entry-mode-map
   (let ((org-jira-map (make-sparse-keymap)))
