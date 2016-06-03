@@ -15,7 +15,6 @@ To save the settings in your .emacs, you need only do 2 things:
     #+BEGIN_EXAMPLE
     3 matches for "\bdefcustom\b" in buffer: jiralib.el
          55:(defcustom jiralib-host ""
-        107:(defcustom jiralib-wsdl-descriptor-url
         120:(defcustom jiralib-url
     #+END_EXAMPLE
 

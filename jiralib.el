@@ -32,7 +32,6 @@
 ;;
 
 (eval-when-compile (require 'cl))
-(require 'soap-client)
 (require 'request)
 (require 'json)
 (require 'url-parse)
@@ -78,11 +77,6 @@ This will be used with USERNAME to compute password from
 (defface jiralib-comment-header-face
   '((t (:bold t)))
   "Base face for comment headers."
-  :group 'jiralib-faces)
-
-(defface jiralib-link-issue-face
-  '((t (:underline t)))
-  "Face for linked issues."
   :group 'jiralib-faces)
 
 (defface jiralib-link-project-face
@@ -176,8 +170,8 @@ After a succesful login, store the authentication token in
   "Invoke the JIRA METHOD with supplied PARAMS.
 
 This function should be used for all JIRA interface calls, as the
-method ensures the user is logged in and invokes `soap-invoke'
-with the correct service name and authentication token.
+method ensures the user is logged in and invokes the REST method
+with the correct authentication token.
 
 All JIRA inteface methods take an authentication token as the
 first argument.  The authentication token is supplied by this
@@ -268,43 +262,16 @@ when invoking it through `jiralib-call', the call shoulbe be:
   "Map all assoc elements in DATA to the value of FIELD in that element."
   (loop for element in data
         collect (cdr (assoc field element))))
-(defun jiralib-make-assoc-list (data key-field value-field)
-  "Create an association list from a SOAP structure array.
 
-DATA is a list of association lists (a SOAP array-of type)
+(defun jiralib-make-assoc-list (data key-field value-field)
+  "Create an association list from a structure array.
+
+DATA is a list of association lists
 KEY-FIELD is the field to use as the key in the returned alist
 VALUE-FIELD is the field to use as the value in the returned alist"
   (loop for element in data
         collect (cons (cdr (assoc key-field element))
                       (cdr (assoc value-field element)))))
-
-(defun jiralib-make-remote-field-values (fields)
-  "Transform the (KEY . VALUE) list FIELDS into a RemoteFieldValue structure.
-
-Each (KEY . VALUE) pair is transformed into
- ((id . KEY) (values . (VALUE)))
-
-This method exists because Several JIRA methods require a
-RemoteFieldValue list, but it is easier to work with ALISTS in
-emacs-lisp"
-  (let ((remote-field-values))
-
-    ;; we accept an ALIST of field-name field-values parameter, but we need to
-    ;; construct a structure that encodes as a RemoteFieldValue which is what
-    ;; updateIssue wants
-    (dolist (field fields)
-      (let ((name (car field))
-            (value (cdr field)))
-        (when (symbolp name)
-          (setq name (symbol-name name)))
-        ;; Value must be an "array" (for which soap-client accepts lists) even
-        ;; if it is just one value
-        (unless (vectorp value)
-          (setq value (vector value)))
-        (push `((id . ,name) (values . ,value))
-              remote-field-values)))
-
-    (apply 'vector (nreverse remote-field-values))))
 
 ;;;; Wrappers around JIRA methods
 
@@ -464,49 +431,6 @@ COMMENT will be added to this worklog."
                   (timeSpent . ,time-spent)
                   (comment   . ,comment))))
 
-(defun jiralib-link-issue (issue-key link-type other-issue-key)
-  "Link ISSUE-KEY with a link of type LINK-TYPE to OTHER-ISSUE-KEY.
-LINK-TYPE is a string representing the type of the link, e.g
-\"requires\", \"depends on\", etc.  I believe each JIRA
-installation can define its own link types."
-
-  ;; IMPLEMENTATION NOTES: The linking jira issues functionality is
-  ;; not exposed through the SOAP api, we must use the web interface
-  ;; to do the linking.  Unfortunately, we cannot parse the result, so
-  ;; we don't know that the linking was succesfull or not.  To reduce
-  ;; the risk, we use the SOAP api to retrieve the issues for
-  ;; ISSUE-KEY and OTHER-ISSUE-KEY.  This will ensure that we are
-  ;; logged in (see also jiralib-login) and that both issues exist. We
-  ;; don't validate the LINK-TYPE, not sure how to do it.
-
-  (let ((issue (jiralib-get-issue issue-key))
-        (other-issue (jiralib-get-issue other-issue-key)))
-    (let ((url (concat jiralib-url
-                       "/secure/LinkExistingIssue.jspa?"
-                       (format "linkDesc=%s&linkKey=%s&id=%s&Link=Link"
-                               link-type other-issue-key (cdr (assq 'id issue))))))
-      (let ((url-request-method "POST")
-            (url-package-name "Emacs scratch.el")
-            (url-package-version "1.0")
-            (url-mime-charset-string "utf-8;q=1, iso-8859-1;q=0.5")
-            (url-request-data "abc")
-            (url-request-coding-system 'utf-8)
-            (url-http-attempt-keepalives t)
-            ;; see http://confluence.atlassian.com/display/JIRA/Form+Token+Handling
-            (url-request-extra-headers '(("X-Atlassian-Token" . "no-check"))))
-
-        (let ((buffer (url-retrieve-synchronously url)))
-          ;; This is just a basic check that the page was retrieved
-          ;; correctly.  No error does not indicate a success as we
-          ;; have to parse the HTML page to find that out...
-          (with-current-buffer buffer
-            (declare (special url-http-response-status))
-            (if (> url-http-response-status 299)
-                (error "Error linking issue through JIRA Web interface %s"
-                       url-http-response-status)))
-          (kill-buffer buffer))))))
-
-
 ;;;; Issue field accessors
 
 (defun jiralib-issue-key (issue)

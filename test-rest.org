@@ -60,11 +60,6 @@
 ;;            ]
 ;; }
 
-(defun jiralib--soap-call-it (&rest args)
-  (let ((jiralib-token nil)
-        (jiralib-use-restapi nil)) (apply #'jiralib-call args)))
-
-(jiralib--soap-call-it "getProjectsNoSchemes")
 (append (jiralib--rest-call-it
          "/rest/api/2/project") nil)
 
@@ -72,8 +67,6 @@
 
 (let ((jiralib-token nil)
       (jiralib-use-restapi nil)) (org-jira-get-issue-list))
-
-(jiralib--soap-call-it "getIssuesFromJqlSearch" org-jira-default-jql 100)
 
 (jiralib-call "getIssuesFromJqlSearch" org-jira-default-jql 100)
 
@@ -85,42 +78,12 @@
 
 (list (append (cdaar (org-jira-get-issue-list)) nil))
 
-(jiralib--soap-call-it "getIssue" "SMARTCM-1")((id . "10000")
-                                               (affectsVersions)
-                                               (assignee)
-                                               (attachmentNames)
-                                               (components)
-                                               (created . "2016-02-11T08:42:56.192Z")
-                                               (customFieldValues
-                                                ((customfieldId . "customfield_10009")
-                                                 (key)
-                                                 (values "0|hzzzzz:")))
-                                               (description)
-                                               (duedate)
-                                               (environment)
-                                               (fixVersions)
-                                               (key . "SMARTCM-1")
-                                               (priority . "3")
-                                               (project . "SMARTCM")
-                                               (reporter . "baohaojun@gmail.com")
-                                               (resolution)
-                                               (status . "10000")
-                                               (summary . "hello 2 world")
-                                               (type . "3")
-                                               (updated . "2016-03-05T10:35:39.431Z")
-                                               (votes . 0))
-(let ((jiralib-use-restapi nil)) (setq issue (jiralib--soap-call-it "getIssue" "SMARTCM-1"))
-       (org-jira-get-issue-val 'resolution issue))
-
 (assignee reporter type priority resolution status components created updated)
 (org-jira-get-issue-components issue)
 (mapconcat (lambda (comp) (org-jira-find-value comp 'name)) (org-jira-find-value issue 'fields 'components) ", ")
 
 (progn (setq issue (jiralib-call "getIssue" "SMARTCM-1"))
        (org-jira-get-issue-val 'type issue))
-
-(progn (setq proj (car (jiralib--soap-call-it "getProjectsNoSchemes")))
-       (cdr (assoc 'url proj)))
 
 (progn (setq proj (car (jiralib-call "getProjectsNoSchemes")))
        (cdr (assoc 'name (cdr (assoc 'lead proj)))))
@@ -131,9 +94,6 @@
                        :type "POST"
                        :data (json-encode '((name . comp2)
                                             (project . SMARTCM))))
-
-(progn (setq comment (nth 0 (jiralib--soap-call-it "getComments" "SMARTCM-1")))
-       (cdr (assoc 'body comment)))
 
 (progn (setq comment (aref (jiralib-call "getComments" "SMARTCM-1") 0))
        (org-jira-find-value comment 'author 'name)
