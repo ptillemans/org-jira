@@ -729,6 +729,28 @@ See`org-jira-get-issue-list'"
 (defvar org-jira-priority-read-history nil)
 (defvar org-jira-type-read-history nil)
 
+(defun org-jira-read-component (project)
+  "Read component name."
+  (completing-read
+   "Component: "
+   (jiralib-make-list (jiralib-get-components project) 'key)
+   nil
+   t
+   nil
+   'org-jira-project-read-history
+   (car org-jira-project-read-history)))
+
+(defun org-jira-read-assignable-user (project)
+  "Read assignable name."
+  (completing-read
+   "Assignable user: "
+   (jiralib-make-list (jiralib-get-assignable-users project) 'key)
+   nil
+   t
+   nil
+   'org-jira-project-read-history
+   (car org-jira-project-read-history)))
+
 (defun org-jira-read-project ()
   "Read project name."
   (completing-read
