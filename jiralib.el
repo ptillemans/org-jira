@@ -376,7 +376,7 @@ emacs-lisp"
               remote-field-values)))
 
     (apply 'vector (nreverse remote-field-values))))
-
+
 ;;;; Wrappers around JIRA methods
 
 (defun jiralib--rest-api-for-issue-key (key)
@@ -429,6 +429,17 @@ will cache it."
     (setq jiralib-priority-codes-cache
           (jiralib-make-assoc-list (jiralib-call "getPriorities") 'id 'name)))
   jiralib-priority-codes-cache)
+
+(defvar jiralib-versions-cache nil)
+
+(defun jiralib-get-versions (key)
+  "Return an assoc list mapping user key and display name.
+This function will only ask JIRA for the list of name once, than
+will cache it."
+  (unless jiralib-versions-cache
+    (setq jiralib-versions-cache
+          (jiralib-make-assoc-list (jiralib-call "getVersions" key) 'name 'released)))
+  jiralib-versions-cache)
 
 (defvar jiralib-assignable-users-cache nil)
 
