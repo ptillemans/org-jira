@@ -46,12 +46,6 @@
   "Faces for displaying Jiralib information."
   :group 'jiralib)
 
-(defcustom jiralib-use-restapi t
-  "Use restapi instead of soap."
-  :group 'jiralib
-  :type 'boolean
-  :initialize 'custom-initialize-set)
-
 (defcustom jiralib-host ""
   "User customizable host name of the Jiralib server.
 
@@ -170,13 +164,7 @@ After a succesful login, store the authentication token in
                      (funcall sec)
                    sec)))
          (list user secret)))))
-  (if jiralib-use-restapi
-      (setq jiralib-token `("Authorization" . , (format "Basic %s" (base64-encode-string (concat username ":" password)))))
-    (unless jiralib-wsdl
-      (jiralib-load-wsdl))
-    (setq jiralib-token
-          (car (soap-invoke jiralib-wsdl "jirasoapservice-v2" "login" username password)))
-    (setq jiralib-user-login-name username))
+  (setq jiralib-token `("Authorization" . , (format "Basic %s" (base64-encode-string (concat username ":" password)))))
   ;; At this poing, soap-invoke didn't raise an error, so the login
   ;; credentials are OK.  use them to log into the web interface as
   ;; well, as this will be used to link issues (an operation which is
@@ -219,72 +207,66 @@ function, so PARAMS should omit this parameter.  For example, the
 when invoking it through `jiralib-call', the call shoulbe be:
 
   (jiralib-call \"getIssue\" KEY)"
-  (if (not jiralib-use-restapi)
-      (car (apply 'jiralib--call-it method params))
-    (unless jiralib-token
-      (call-interactively 'jiralib-login))
-    (case (intern method)
-      ('getStatuses (jiralib--rest-call-it "/rest/api/2/status"))
-      ('getIssueTypes (jiralib--rest-call-it "/rest/api/2/issuetype"))
-      ('getUser (jiralib--rest-call-it "/rest/api/2/user" :params `((username . ,(first params)))))
-      ('getAssignableUsers (jiralib--rest-call-it "/rest/api/2/user/assignable/search" :params `((project . ,(first params))(maxResults . ,"1000"))))
-      ('getVersions (jiralib--rest-call-it (format "/rest/api/2/project/%s/versions" (first params))))
-      ('getWorklogs nil) ; fixme
-      ('addComment (jiralib--rest-call-it
-                    (format "/rest/api/2/issue/%s/comment" (first params))
-                    :type "POST"
-                    :data (json-encode (second params))))
-      ('createIssue (jiralib--rest-call-it
-                     "/rest/api/2/issue"
-                     :type "POST"
-                     :data (json-encode (first params))))
-      ('createIssueWithParent (jiralib--rest-call-it
-                               ))
-      ('editComment (jiralib--rest-call-it
-                     (format "/rest/api/2/issue/%s/comment/%s" (first params) (second params))
-                     :data (json-encode `((body . ,(third params))))
-                     :type "PUT"))
-      ('getComments (org-jira-find-value (jiralib--rest-call-it
-                                          (format "/rest/api/2/issue/%s/comment" (first params))) 'comments))
-      ('getComponents (jiralib--rest-call-it
-                       (format "/rest/api/2/project/%s/components" (first params))))
-      ('getIssue (jiralib--rest-call-it
-                  (format "/rest/api/2/issue/%s" (first params))))
-      ('getIssuesFromJqlSearch (append (cdr ( assoc 'issues (jiralib--rest-call-it
-                                                             "/rest/api/2/search"
-                                                             :type "POST"
-                                                             :data (json-encode `((jql . ,(first params))
-                                                                                  (maxResults . ,(second params))))))) nil))
-      ('getPriorities (jiralib--rest-call-it
-                       "/rest/api/2/priority"))
-      ('getProjectsNoSchemes (append (jiralib--rest-call-it
-                                      "/rest/api/2/project"
-                                      :params '((expand . "description,lead,url,projectKeys"))) nil))
-      ('getResolutions (append (jiralib--rest-call-it
-                                "/rest/api/2/resolution") nil))
-      ('getAvailableActions (mapcar (lambda (trans) `(,(assoc 'name trans) ,(assoc 'id trans))) (cdar (jiralib--rest-call-it
-                                                                                                  (format "/rest/api/2/issue/%s/transitions" (first params))))))
-      ('getFieldsForAction (org-jira-find-value (car (let ((issue (first params))
-                                                           (action (second params)))
-                                                       (seq-filter (lambda (trans)
-                                                                     (or (string-equal action (org-jira-find-value trans 'id))
-                                                                         (string-equal action (org-jira-find-value trans 'name))))
-                                                                   (cdar (jiralib--rest-call-it
-                                                                          (format "/rest/api/2/issue/%s/transitions" (first params))
-                                                                          :params '((expand . "transitions.fields")))))))
-                                                'fields))
-      ('progressWorkflowAction (jiralib--rest-call-it
-                                (format "/rest/api/2/issue/%s/transitions" (first params))
-                                :type "POST"
-                                :data (json-encode `(,(car (second params)) ,(car (third params))))))
-      ('updateIssue (jiralib--rest-call-it
-                     (format "/rest/api/2/issue/%s" (first params))
-                     :type "PUT"
-                     :data (json-encode `((fields . ,(second params)))))))))
-
-(defun jiralib--soap-call-it (&rest args)
-  (let ((jiralib-token nil)
-        (jiralib-use-restapi nil)) (apply #'jiralib-call args)))
+  (unless jiralib-token
+    (call-interactively 'jiralib-login))
+  (case (intern method)
+    ('getStatuses (jiralib--rest-call-it "/rest/api/2/status"))
+    ('getIssueTypes (jiralib--rest-call-it "/rest/api/2/issuetype"))
+    ('getUser (jiralib--rest-call-it "/rest/api/2/user" :params `((username . ,(first params)))))
+    ('getAssignableUsers (jiralib--rest-call-it "/rest/api/2/user/assignable/search" :params `((project . ,(first params))(maxResults . ,"1000"))))
+    ('getVersions (jiralib--rest-call-it (format "/rest/api/2/project/%s/versions" (first params))))
+    ('getWorklogs nil) ; fixme
+    ('addComment (jiralib--rest-call-it
+                  (format "/rest/api/2/issue/%s/comment" (first params))
+                  :type "POST"
+                  :data (json-encode (second params))))
+    ('createIssue (jiralib--rest-call-it
+                   "/rest/api/2/issue"
+                   :type "POST"
+                   :data (json-encode (first params))))
+    ('createIssueWithParent (jiralib--rest-call-it
+                             ))
+    ('editComment (jiralib--rest-call-it
+                   (format "/rest/api/2/issue/%s/comment/%s" (first params) (second params))
+                   :data (json-encode `((body . ,(third params))))
+                   :type "PUT"))
+    ('getComments (org-jira-find-value (jiralib--rest-call-it
+                                        (format "/rest/api/2/issue/%s/comment" (first params))) 'comments))
+    ('getComponents (jiralib--rest-call-it
+                     (format "/rest/api/2/project/%s/components" (first params))))
+    ('getIssue (jiralib--rest-call-it
+                (format "/rest/api/2/issue/%s" (first params))))
+    ('getIssuesFromJqlSearch (append (cdr ( assoc 'issues (jiralib--rest-call-it
+                                                           "/rest/api/2/search"
+                                                           :type "POST"
+                                                           :data (json-encode `((jql . ,(first params))
+                                                                                (maxResults . ,(second params))))))) nil))
+    ('getPriorities (jiralib--rest-call-it
+                     "/rest/api/2/priority"))
+    ('getProjectsNoSchemes (append (jiralib--rest-call-it
+                                    "/rest/api/2/project"
+                                    :params '((expand . "description,lead,url,projectKeys"))) nil))
+    ('getResolutions (append (jiralib--rest-call-it
+                              "/rest/api/2/resolution") nil))
+    ('getAvailableActions (mapcar (lambda (trans) `(,(assoc 'name trans) ,(assoc 'id trans))) (cdar (jiralib--rest-call-it
+                                                                                                     (format "/rest/api/2/issue/%s/transitions" (first params))))))
+    ('getFieldsForAction (org-jira-find-value (car (let ((issue (first params))
+                                                         (action (second params)))
+                                                     (seq-filter (lambda (trans)
+                                                                   (or (string-equal action (org-jira-find-value trans 'id))
+                                                                       (string-equal action (org-jira-find-value trans 'name))))
+                                                                 (cdar (jiralib--rest-call-it
+                                                                        (format "/rest/api/2/issue/%s/transitions" (first params))
+                                                                        :params '((expand . "transitions.fields")))))))
+                                              'fields))
+    ('progressWorkflowAction (jiralib--rest-call-it
+                              (format "/rest/api/2/issue/%s/transitions" (first params))
+                              :type "POST"
+                              :data (json-encode `(,(car (second params)) ,(car (third params))))))
+    ('updateIssue (jiralib--rest-call-it
+                   (format "/rest/api/2/issue/%s" (first params))
+                   :type "PUT"
+                   :data (json-encode `((fields . ,(second params))))))))
 
 (defun utf-8-parser ()
   "Decode the HTTP response using the charset UTF-8."
@@ -375,9 +357,7 @@ emacs-lisp"
 (defun jiralib-update-issue (key fields)
   "Update the issue with id KEY with the values in FIELDS."
 
-  (jiralib-call "updateIssue" key (if jiralib-use-restapi
-                                      fields
-                                    (jiralib-make-remote-field-values fields))))
+  (jiralib-call "updateIssue" key fields))
 
 
 (defvar jiralib-status-codes-cache nil)
@@ -494,24 +474,19 @@ This runs the getAvailableActions SOAP method."
 
 (defun jiralib-get-fields-for-action (issue-key action-id)
   "Return the required fields to change ISSUE-KEY to ACTION-ID."
-  (if jiralib-use-restapi
-      (let ((fields (jiralib-call "getFieldsForAction" issue-key action-id)))
-        (mapcar (lambda (field)
-                  (cons (symbol-name (car field)) (format "%s (required: %s)"
-                                                          (org-jira-find-value field 'name)
-                                                          (if (eq (org-jira-find-value field 'required) :json-false)
-                                                              "nil"
-                                                            "t")))) fields))
-    (jiralib-make-assoc-list
-     (jiralib-call "getFieldsForAction" issue-key action-id)
-     'id 'name)))
+  (let ((fields (jiralib-call "getFieldsForAction" issue-key action-id)))
+    (mapcar (lambda (field)
+              (cons (symbol-name (car field)) (format "%s (required: %s)"
+                                                      (org-jira-find-value field 'name)
+                                                      (if (eq (org-jira-find-value field 'required) :json-false)
+                                                          "nil"
+                                                        "t")))) fields)))
 
 (defun jiralib-progress-workflow-action (issue-key action-id params)
   "Progress issue with ISSUE-KEY to action ACTION-ID, and provide the needed PARAMS."
-  (if jiralib-use-restapi
-      (jiralib-call "progressWorkflowAction" issue-key `((transition (id . ,action-id)))
-                    `((fields . ,params)))
-    (jiralib-call "progressWorkflowAction" issue-key action-id (jiralib-make-remote-field-values params))))
+  (jiralib-call "progressWorkflowAction" issue-key `((transition (id . ,action-id)))
+                `((fields . ,params))))
+
 
 (defun jiralib-add-worklog-and-autoadjust-remaining-estimate (issue-key start-date time-spent comment)
   "Log time spent on ISSUE-KEY to its worklog.
@@ -659,10 +634,7 @@ Return nil if the field is not found"
 
 (defun jiralib-edit-comment (issue-id comment-id comment)
   "Edit ISSUE-ID's comment COMMENT-ID to reflect the new COMMENT."
-  (if (not jiralib-use-restapi)
-      (jiralib-call "editComment" `((id . ,comment-id)
-                                    (body . ,comment)))
-    (jiralib-call "editComment" issue-id comment-id comment)))
+  (jiralib-call "editComment" issue-id comment-id comment))
 
 (defun jiralib-create-issue (issue)
   "Create a new ISSUE in JIRALIB.
@@ -733,9 +705,7 @@ Return no more than MAX-NUM-RESULTS."
   (if jiralib-projects-list
       jiralib-projects-list
     (setq jiralib-projects-list
-          (if (not jiralib-use-restapi)
-              (jiralib-call "getProjectsNoSchemes")
-            (jiralib--rest-call-it "rest/api/2/project")))))
+          (jiralib--rest-call-it "rest/api/2/project"))))
 
 (defun jiralib-get-saved-filters ()
   "Get all saved filters available for the currently logged in user."
