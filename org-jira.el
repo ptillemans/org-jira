@@ -672,6 +672,24 @@ See`org-jira-get-issue-list'"
 (defun org-jira-get-comment-author (comment)
   (org-jira-find-value comment 'author 'name))
 
+(defun display-comment (comment)
+  ;; really needed ?
+  ;;  (replace-regexp-in-string "^" "  " (or comment ""))
+
+  ;; ;; emacs 25.1
+  ;;   (thread-last comment
+  ;;                (replace-regexp-in-string "{code}" "#+END_EXAMPLE")
+  ;;                (replace-regexp-in-string "{code}" "#+END_EXAMPLE")
+  ;;                ))
+
+  ;; (replace-regexp-in-string
+  ;;  "{code:java}" "#+BEGIN_EXAMPLE"
+  ;;  (replace-regexp-in-string
+  ;;   "{code}" "#+END_EXAMPLE"
+  ;;   (or comment ""))
+  ;;  )
+  (or comment ""))
+
 (defun org-jira-update-comments-for-current-issue ()
   "Update the comments for the current issue."
   (let* ((issue-id (org-jira-get-from-org 'issue 'key))
@@ -703,11 +721,10 @@ See`org-jira-get-issue-list'"
                   (unless (string= created updated)
                     (org-entry-put (point) "updated" updated)))
                 (goto-char (point-max))
-                (insert (replace-regexp-in-string "^" "  " (or (org-jira-find-value comment 'body) ""))))))
-          (cl-mapcan (lambda (comment) (if (string= (org-jira-get-comment-author comment)
-                                               "admin")
-                                      nil
-                                    (list comment)))
+                (insert (display-comment (org-jira-find-value comment 'body))))))
+          (cl-mapcan (lambda (comment) (if (string= (org-jira-get-comment-author comment) "admin")
+                                           nil
+                                         (list comment)))
                      comments))))
 
 (defun org-jira-update-worklogs-for-current-issue ()
