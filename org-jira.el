@@ -210,6 +210,22 @@ variables.
        (org-narrow-to-subtree)
        ,@body)))
 
+(defun hash (dlist dhash)
+  "Convert a list to hash and return that hash."
+  (progn (new-list-to-hash dlist dhash)
+         dhash))
+
+(defun new-list-to-hash (dlist dhash)
+  "Given a nested list, convert it into a hash-table."
+  (mapc (lambda (x)
+          (puthash (car x)
+                   (if (and (equal 'cons (type-of (cdr x)))
+                            (not (equal 'string (type-of (car (cdr x))))))
+                       (hash (car (cdr x)) (make-hash-table :test 'equal))
+                     (cdr x))
+                   dhash))
+        dlist))
+
 (defun org-jira-kill-buffer-hook ()
   "Prompt before killing buffer."
   (if (and org-jira-buffer-kill-prompt
