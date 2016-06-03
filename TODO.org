@@ -1,0 +1,5 @@
+* Remove jira-users code, use get-assignable-users instead
+* Fix createIssue by using "completing-read"
+* Fix comments format
+* Fix subtasks display
+* Use hash instead of dlist
