@@ -1,9 +1,11 @@
 ;;; org-jira.el --- Syncing between Jira and Org-mode.
 
-;; Author: Bao Haojun <baohaojun@gmail.com>
-;; Maintainer: Bao Haojun <baohaojun@gmail.com>
+;; Authors:
+;; Bertrand Lallau <bertrand.lallau@gmail.com>
+;; Bao Haojun <baohaojun@gmail.com>
+;;
 ;; Version: 0.1
-;; Homepage: https://github.com/baohaojun/org-jira
+;; Homepage: https://github.com/blallau/org-jira
 
 ;; This file is not part of GNU Emacs.
 

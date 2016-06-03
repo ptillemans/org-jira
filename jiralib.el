@@ -1,16 +1,10 @@
-;;; jiralib.el -- Provide connectivity to JIRA SOAP service
-
-;; Copyright (C) 2011 Bao Haojun
-;; original Copyright (C) 2009 Alex Harsanyi
-
-;; Also, used some code from jira.el, which use xml-rpc instead of soap.
-;; Thus Copyright (C) for jira.el related code:
-;; Brian Zwahr <echosa@gmail.com>
-;; Dave Benjamin <dave@ramenlabs.com>
+;;; jiralib.el -- Provide connectivity to JIRA REST service
 
 ;; Authors:
+;; Bertrand Lallau <bertrand.lallau@gmail.com>
 ;; Bao Haojun <baohaojun@gmail.com>
-;; Alex Harsanyi <AlexHarsanyi@gmail.com>
+
+;; This file is not part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,11 +19,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; Author: Alexandru Harsanyi (AlexHarsanyi@gmail.com)
-;; Created: December, 2009
 ;; Package-Requires: ((request "0.2.0"))
-;; Keywords: soap, web-services, jira
-;; Homepage: http://code.google.com/p/emacs-soap-client
+;; Keywords: rest, jira
 
 ;;; Commentary:
 ;; This file provides a programatic interface to JIRA.  It provides access to
@@ -37,10 +28,8 @@
 
 ;; Jira References:
 ;;
-;; http://confluence.atlassian.com/display/JIRA/Creating+a+SOAP+Client
+;; https://docs.atlassian.com/jira/REST/latest/
 ;;
-;; JavaDoc for the Jira SOAP service
-;; http://docs.atlassian.com/software/jira/docs/api/rpc-jira-plugin/latest/com/atlassian/jira/rpc/soap/JiraSoapService.html
 
 (eval-when-compile (require 'cl))
 (require 'soap-client)
