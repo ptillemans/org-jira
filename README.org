@@ -2,10 +2,6 @@
 
 Use [[http://www.atlassian.com/software/jira/overview/][Jira]] in Emacs org-mode.
 
-For usage, please watch [[http://www.youtube.com/watch?v=6Sp3h1Qlf4w][this youtube video]]. Or watch it on [[http://v.youku.com/v_show/id_XNDc1NTIwOTY0.html][youku]] if
-you can't visit youtube for some reason. My apologies beforehand if
-you find the video too verbose and boring.
-
 To save the settings in your .emacs, you need only do 2 things:
 
 1. Set the ~defcustom~ variables defined in jiralib.el (actually only
