@@ -54,41 +54,6 @@ This will be used with USERNAME to compute password from
   :type 'string
   :initialize 'custom-initialize-set)
 
-(defface jiralib-issue-info-face
-  '((t (:foreground "black" :background "yellow4")))
-  "Base face for issue information."
-  :group 'jiralib-faces)
-
-(defface jiralib-issue-info-header-face
-  '((t (:bold t :inherit 'jiralib-issue-info-face)))
-  "Base face for issue headers."
-  :group 'jiralib-faces)
-
-(defface jiralib-issue-summary-face
-  '((t (:bold t)))
-  "Base face for issue summary."
-  :group 'jiralib-faces)
-
-(defface jiralib-comment-face
-  '((t (:background "gray23")))
-  "Base face for comments."
-  :group 'jiralib-faces)
-
-(defface jiralib-comment-header-face
-  '((t (:bold t)))
-  "Base face for comment headers."
-  :group 'jiralib-faces)
-
-(defface jiralib-link-project-face
-  '((t (:underline t)))
-  "Face for linked projects"
-  :group 'jiralib-faces)
-
-(defface jiralib-link-filter-face
-  '((t (:underline t)))
-  "Face for linked filters"
-  :group 'jiralib-faces)
-
 (defvar jiralib-mode-hook nil)
 
 (defvar jiralib-mode-map nil)
