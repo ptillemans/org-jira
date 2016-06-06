@@ -161,9 +161,8 @@ when invoking it through `jiralib-call', the call shoulbe be:
     ('createIssue (jiralib--rest-call-it
                    "/rest/api/2/issue"
                    :type "POST"
-                   :data (json-encode (first params))))
-    ('createIssueWithParent (jiralib--rest-call-it
-                             ))
+                   :data (json-encode (list (cons 'fields (first params))))))
+    ('createIssueWithParent (jiralib--rest-call-it))
     ('editComment (jiralib--rest-call-it
                    (format "/rest/api/2/issue/%s/comment/%s" (first params) (second params))
                    :data (json-encode `((body . ,(third params))))
