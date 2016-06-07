@@ -150,8 +150,9 @@
 
 (defun hash (dlist dhash)
   "Convert a list to hash and return that hash."
-  (progn (new-list-to-hash dlist dhash)
-         dhash))
+  (progn
+    (new-list-to-hash dlist dhash)
+    dhash))
 
 (defun new-list-to-hash (dlist dhash)
   "Given a nested list, convert it into a hash-table."
@@ -476,8 +477,9 @@ See`org-jira-get-issue-list'"
          (parent-point (point))
          (subtask-summary (cdr (assoc 'summary fields))))
     (if subtask-point
-        (progn (goto-char subtask-point)
-               (ignore-errors (org-refile nil nil (list nil (buffer-file-name) nil parent-point))))
+        (progn
+          (goto-char subtask-point)
+          (ignore-errors (org-refile nil nil (list nil (buffer-file-name) nil parent-point))))
       (org-jira-write-issue-header (org-find-entry-with-id subtask-id)
                                    (org-jira-get-issue-val 'status fields)
                                    subtask-summary))))
@@ -602,7 +604,7 @@ See`org-jira-get-issue-list'"
 
 (defun display-comment (comment)
   ;; really needed ?
-  ;;  (replace-regexp-in-string "^" "  " (or comment ""))
+  ;; (replace-regexp-in-string "^" "  " (or comment "")))
 
   ;; ;; emacs 25.1
   ;;   (thread-last comment
@@ -781,6 +783,7 @@ See`org-jira-get-issue-list'"
    'org-jira-type-read-history
    (car org-jira-type-read-history)))
 
+;; TO DEBUG
 (defun org-jira-read-subtask-type ()
   "Read issue type name."
   (completing-read
