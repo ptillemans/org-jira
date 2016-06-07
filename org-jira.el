@@ -799,26 +799,28 @@ See`org-jira-get-issue-list'"
                                             reporter assignee versions
                                             fixVersions summary description)
   "Create an issue struct for PROJECT, of TYPE, with SUMMARY and DESCRIPTION."
-  (let ((ticket-struct (list (cons 'project (list (cons 'id project)))
+  (let ((ticket-struct (list (cons 'project (list (cons 'id (jiralib-get-project-id project))))
                              (cons 'summary (format "%s%s" summary
                                                     (if (and (boundp 'parent-id) parent-id)
                                                         (format " (subtask of [jira:%s])" parent-id)
                                                       "")))
-                             (cons 'issuetype (list (cons 'id issueType)))
+                             (cons 'issuetype (list (cons 'id issue-type)))
                              (cons 'assignee (list (cons 'name assignee)))
-                             (cons 'reporter (list (cons 'name reporter)))
+                             ;; "errors":{"reporter":"Field 'reporter' cannot be set. It is not on the appropriate screen, or unknown."}
+                             ;; (cons 'reporter (list (cons 'name reporter)))
                              (cons 'priority (list (cons 'id priority)))
                              (cons 'description description)
-                             (cons 'versions versions)
-                             (cons 'fixVersions fixVersions)
-                             (cons 'components component))))
+                             (cons 'versions (list (cons 'id versions)))
+                             (cons 'fixVersions (list (cons 'id fixVersions)))
+                             (cons 'components (list (cons 'id component))))))
     ticket-struct))
 
 ;;;###autoload
 (defun org-jira-create-issue ()
   "Create an issue in PROJECT"
   (interactive)
-  (let* ((project (completing-read "Project: " (jiralib-make-list (jiralib-get-projects) 'key)))
+  (let* ((project (cdr (rassoc (completing-read "Project: " (mapcar 'cdr (jiralib-get-projects)))
+                                          (jiralib-get-projects))))
          (component (car (rassoc (completing-read "Component: " (mapcar 'cdr (jiralib-get-components project)))
                                  (jiralib-get-components project))))
          (issue-type (car (rassoc (completing-read "IssueType: " (mapcar 'cdr (jiralib-get-issue-types)))

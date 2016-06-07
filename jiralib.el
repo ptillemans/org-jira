@@ -180,9 +180,7 @@ when invoking it through `jiralib-call', the call shoulbe be:
                                                                                 (maxResults . ,(second params))))))) nil))
     ('getPriorities (jiralib--rest-call-it
                      "/rest/api/2/priority"))
-    ('getProjectsNoSchemes (append (jiralib--rest-call-it
-                                    "/rest/api/2/project"
-                                    :params '((expand . "description,lead,url,projectKeys"))) nil))
+    ('getProjectsNoSchemes (jiralib--rest-call-it "/rest/api/2/project" :params `((expand . ,(first params)))))
     ('getResolutions (append (jiralib--rest-call-it
                               "/rest/api/2/resolution") nil))
     ('getAvailableActions (mapcar (lambda (trans) `(,(assoc 'name trans) ,(assoc 'id trans))) (cdar (jiralib--rest-call-it
@@ -332,7 +330,7 @@ This function will only ask JIRA for the list of name once, than
 will cache it."
   (unless jiralib-assignable-users-cache
     (setq jiralib-assignable-users-cache
-          (jiralib-make-assoc-list (jiralib-call "getAssignableUsers" key) 'displayName 'key)))
+          (jiralib-make-assoc-list (jiralib-call "getAssignableUsers" key) 'key 'displayName)))
   jiralib-assignable-users-cache)
 
 (defvar jiralib-resolution-code-cache nil)
@@ -458,14 +456,23 @@ Return nil if the field is not found"
 (defvar jiralib-user-fullnames nil
   "This holds a list of user fullnames.")
 
-(defun jiralib-get-project-name (key)
-  "Return the name of the JIRA project with id KEY."
+;; (defun jiralib-get-project-name (key)
+;;   "Return the name of the JIRA project with id KEY."
+;;   (let ((projects jiralib-projects-list)
+;;         (name nil))
+;;     (dolist (project projects)
+;;       (if (equal (cdr (assoc 'key project)) key)
+;;           (setf name (cdr (assoc 'name project)))))
+;;     name))
+
+(defun jiralib-get-project-id (key)
+  "Return the ID of the JIRA project with name KEY."
   (let ((projects jiralib-projects-list)
-        (name nil))
+        (id nil))
     (dolist (project projects)
-      (if (equal (cdr (assoc 'key project)) key)
-          (setf name (cdr (assoc 'name project)))))
-    name))
+      (if (equal (cdr project) key)
+          (setf id (car project))))
+    id))
 
 (defun jiralib-get-type-name (id)
   "Return the name of the issue type with ID."
@@ -570,13 +577,15 @@ Return no more than MAX-NUM-RESULTS."
   (jiralib-call "getIssuesFromTextSearchWithProject"
                 (apply 'vector project-keys) search-terms max-num-results))
 
-;; Modified by Brian Zwahr to use getProjectsNoSchemes instead of getProjects
+(defvar jiralib-projects-list nil
+  "This holds a list of projects and their details.")
+
 (defun jiralib-get-projects ()
   "Return a list of projects available to the user."
-  (if jiralib-projects-list
-      jiralib-projects-list
+  (unless jiralib-projects-list
     (setq jiralib-projects-list
-          (jiralib--rest-call-it "rest/api/2/project"))))
+          (jiralib-make-assoc-list (jiralib-call "getProjectsNoSchemes" "description,lead,url,projectKeys") 'id 'key)))
+  jiralib-projects-list)
 
 (defun jiralib-get-saved-filters ()
   "Get all saved filters available for the currently logged in user."
