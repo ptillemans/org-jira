@@ -806,13 +806,11 @@ See`org-jira-get-issue-list'"
                                                       "")))
                              (cons 'issuetype (list (cons 'id issue-type)))
                              (cons 'assignee (list (cons 'name assignee)))
-                             ;; "errors":{"reporter":"Field 'reporter' cannot be set. It is not on the appropriate screen, or unknown."}
-                             ;; (cons 'reporter (list (cons 'name reporter)))
                              (cons 'priority (list (cons 'id priority)))
                              (cons 'description description)
-                             (cons 'versions (list (cons 'id versions)))
-                             (cons 'fixVersions (list (cons 'id fixVersions)))
-                             (cons 'components (list (cons 'id component))))))
+                             (cons 'versions (list (list (cons 'id versions))))
+                             (cons 'fixVersions (list (list (cons 'id fixVersions))))
+                             (cons 'components (list (list (cons 'id component)))))))
     ticket-struct))
 
 ;;;###autoload
@@ -827,8 +825,6 @@ See`org-jira-get-issue-list'"
                                   (jiralib-get-issue-types))))
          (priority (car (rassoc (completing-read "Priority: " (mapcar 'cdr (jiralib-get-priorities)))
                                 (jiralib-get-priorities))))
-         (reporter (car (rassoc (completing-read "Reporter: " (mapcar 'cdr (jiralib-get-assignable-users project)))
-                                (jiralib-get-assignable-users project))))
          (assignee (car (rassoc (completing-read "Assignee: " (mapcar 'cdr (jiralib-get-assignable-users project)))
                                 (jiralib-get-assignable-users project))))
          (versions (car (rassoc (completing-read "Version: " (mapcar 'cdr (jiralib-get-versions project)))
@@ -841,7 +837,6 @@ See`org-jira-get-issue-list'"
             (equal component "")
             (equal issue-type "")
             (equal priority "")
-            (equal reporter "")
             (equal assignee "")
             (equal versions "")
             (equal fixVersions "")
@@ -850,7 +845,7 @@ See`org-jira-get-issue-list'"
         (error "You must provide all informations!"))
     (let* ((parent-id nil)
            (ticket-struct (org-jira-get-issue-struct parent-id project component issue-type priority
-                                                     reporter assignee versions
+                                                     nil assignee versions
                                                      fixVersions summary description)))
       (jiralib-create-issue ticket-struct)
       (org-jira-refresh-issue))))
