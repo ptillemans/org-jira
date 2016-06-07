@@ -1,5 +1,11 @@
 * Remove jira-users code, use get-assignable-users instead
-* Fix createIssue by using "completing-read"
+* ✔ DONE Fix createIssue by using "completing-read"
+CLOSED: [2016-06-07 Tue 13:49]
 * Fix comments format
 * Fix subtasks display
+* Fix subtasks creation
 * Use hash instead of dlist
+* ✔ DONE Separate versions/Fix versions
+CLOSED: [2016-06-07 Tue 13:49]
+* Manage many versions
+* [#C] display selection in minibuffer

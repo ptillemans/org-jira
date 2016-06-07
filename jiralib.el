@@ -237,6 +237,20 @@ VALUE-FIELD is the field to use as the value in the returned alist"
         collect (cons (cdr (assoc key-field element))
                       (cdr (assoc value-field element)))))
 
+(defun jiralib-make-assoc-list-on-cond (data key-field value-field cond-name cond-value)
+  "Create an association list from a structure array matching condition.
+
+DATA is a list of association lists
+KEY-FIELD is the field to use as the key in the returned alist
+VALUE-FIELD is the field to use as the value in the returned alist
+COND-NAME is the field to use as the key for condition
+COND-VALUE is the field to use as the value for condition"
+
+  (loop for element in data
+        when (equal (cdr (assoc cond-name element)) cond-value)
+        collect (cons (cdr (assoc key-field element))
+                      (cdr (assoc value-field element)))))
+
 ;;;; Wrappers around JIRA methods
 
 (defun jiralib--rest-api-for-issue-key (key)
@@ -291,13 +305,24 @@ will cache it."
 (defvar jiralib-versions-cache nil)
 
 (defun jiralib-get-versions (key)
-  "Return an assoc list mapping user key and display name.
+  "Return an assoc list mapping version id and version number.
 This function will only ask JIRA for the list of name once, than
 will cache it."
   (unless jiralib-versions-cache
     (setq jiralib-versions-cache
-          (jiralib-make-assoc-list (jiralib-call "getVersions" key) 'name 'released)))
+          (jiralib-make-assoc-list-on-cond (jiralib-call "getVersions" key) 'id 'name 'released t)))
   jiralib-versions-cache)
+
+(defvar jiralib-fixVersions-cache nil)
+
+(defun jiralib-get-fixVersions (key)
+  "Return an assoc list mapping version id and version number.
+This function will only ask JIRA for the list of name once, than
+will cache it."
+  (unless jiralib-fixVersions-cache
+    (setq jiralib-fixVersions-cache
+          (jiralib-make-assoc-list-on-cond (jiralib-call "getVersions" key) 'id 'name 'released :json-false)))
+  jiralib-fixVersions-cache)
 
 (defvar jiralib-assignable-users-cache nil)
 

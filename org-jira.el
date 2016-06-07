@@ -792,27 +792,25 @@ See`org-jira-get-issue-list'"
    'org-jira-type-read-history
    (car org-jira-type-read-history)))
 
-(defun org-jira-get-issue-struct (project type summary description)
+(defun org-jira-get-issue-struct (parent-id project component issue-type priority
+                                            reporter assignee versions
+                                            fixVersions summary description)
   "Create an issue struct for PROJECT, of TYPE, with SUMMARY and DESCRIPTION."
-  (if (or (equal project "")
-          (equal type "")
-          (equal summary ""))
-      (error "Must provide all information!"))
-  (let* ((project-components (jiralib-get-components project))
-         (user (completing-read "Assignee: " (mapcar 'car jira-users)))
-         (priority (car (rassoc (org-jira-read-priority) (jiralib-get-priorities))))
-         (ticket-struct (list (cons 'project project)
-                              (cons 'type (car (rassoc type (if (and (boundp 'parent-id) parent-id)
-                                                                (jiralib-get-subtask-types)
-                                                              (jiralib-get-issue-types)))))
-                              (cons 'summary (format "%s%s" summary
-                                                     (if (and (boundp 'parent-id) parent-id)
-                                                         (format " (subtask of [jira:%s])" parent-id)
-                                                       "")))
-                              (cons 'description description)
-                              (cons 'priority priority)
-                              (cons 'assignee (cdr (assoc user jira-users))))))
+  (let ((ticket-struct (list (cons 'project (list (cons 'id project)))
+                             (cons 'summary (format "%s%s" summary
+                                                    (if (and (boundp 'parent-id) parent-id)
+                                                        (format " (subtask of [jira:%s])" parent-id)
+                                                      "")))
+                             (cons 'issuetype (list (cons 'id issueType)))
+                             (cons 'assignee (list (cons 'name assignee)))
+                             (cons 'reporter (list (cons 'name reporter)))
+                             (cons 'priority (list (cons 'id priority)))
+                             (cons 'description description)
+                             (cons 'versions versions)
+                             (cons 'fixVersions fixVersions)
+                             (cons 'components component))))
     ticket-struct))
+
 ;;;###autoload
 (defun org-jira-create-issue ()
   "Create an issue in PROJECT"
@@ -828,8 +826,10 @@ See`org-jira-get-issue-list'"
                                 (jiralib-get-assignable-users project))))
          (assignee (car (rassoc (completing-read "Assignee: " (mapcar 'cdr (jiralib-get-assignable-users project)))
                                 (jiralib-get-assignable-users project))))
-         (affected-version (completing-read "Affected version: " (jiralib-make-list (jiralib-get-versions project) 'name)))
-         (corrected-version (completing-read "Corrected version: " (jiralib-make-list (jiralib-get-versions project) 'name)))
+         (versions (car (rassoc (completing-read "Version: " (mapcar 'cdr (jiralib-get-versions project)))
+                                (jiralib-get-versions project))))
+         (fixVersions (car (rassoc (completing-read "Fix version: " (mapcar 'cdr (jiralib-get-fixVersions project)))
+                                (jiralib-get-fixVersions project))))
          (summary (read-string "Summary: "))
          (description (read-string "Description: ")))
     (if (or (equal project "")
@@ -838,15 +838,15 @@ See`org-jira-get-issue-list'"
             (equal priority "")
             (equal reporter "")
             (equal assignee "")
-            (equal affected-version "")
-            (equal corrected-version "")
+            (equal versions "")
+            (equal fixVersions "")
             (equal summary "")
             (equal description ""))
         (error "You must provide all informations!"))
     (let* ((parent-id nil)
-           (ticket-struct (org-jira-get-issue-struct project component issue-type priority
-                                                     reporter assignee affected-version
-                                                     corrected-version summary description)))
+           (ticket-struct (org-jira-get-issue-struct parent-id project component issue-type priority
+                                                     reporter assignee versions
+                                                     fixVersions summary description)))
       (jiralib-create-issue ticket-struct)
       (org-jira-refresh-issue))))
 
