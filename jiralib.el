@@ -584,7 +584,7 @@ Return no more than MAX-NUM-RESULTS."
   "Return a list of projects available to the user."
   (unless jiralib-projects-list
     (setq jiralib-projects-list
-          (jiralib-make-assoc-list (jiralib-call "getProjectsNoSchemes" "description,lead,url,projectKeys") 'id 'key)))
+          (jiralib-make-assoc-list (jiralib-call "getProjectsNoSchemes" "description,projectKeys") 'id 'key)))
   jiralib-projects-list)
 
 (defun jiralib-get-saved-filters ()
