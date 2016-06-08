@@ -795,56 +795,66 @@ See`org-jira-get-issue-list'"
    'org-jira-type-read-history
    (car org-jira-type-read-history)))
 
-(defun org-jira-get-issue-struct (parent-id project component issue-type priority
+(defun org-jira-get-issue-struct (parent-id project components issue-type priority
                                             reporter assignee versions
                                             fixVersions summary description)
   "Create an issue struct for PROJECT, of TYPE, with SUMMARY and DESCRIPTION."
-  (let ((ticket-struct (list (cons 'project (list (cons 'id (jiralib-get-project-id project))))
-                             (cons 'summary (format "%s%s" summary
-                                                    (if (and (boundp 'parent-id) parent-id)
-                                                        (format " (subtask of [jira:%s])" parent-id)
-                                                      "")))
-                             (cons 'issuetype (list (cons 'id issue-type)))
-                             (cons 'assignee (list (cons 'name assignee)))
-                             (cons 'priority (list (cons 'id priority)))
-                             (cons 'description description)
-                             (cons 'versions (list (list (cons 'id versions))))
-                             (cons 'fixVersions (list (list (cons 'id fixVersions))))
-                             (cons 'components (list (list (cons 'id component)))))))
+  (let ((ticket-struct  (list (cons 'project (list (cons 'id (jiralib-get-project-id project))))
+                              (cons 'summary (format "%s%s" summary
+                                                     (if (and (boundp 'parent-id) parent-id)
+                                                         (format " (subtask of [jira:%s])" parent-id)
+                                                       "")))
+                              (cons 'issuetype (list (cons 'id issue-type)))
+                              (cons 'assignee (list (cons 'name assignee)))
+                              (cons 'description description))))
+    (if priority
+        (append ticket-struct (cons 'priority (list (cons 'id priority)))))
+    (if versions
+        (append ticket-struct (cons 'versions (list (list (cons 'id versions))))))
+    ;; (if fixversions
+    ;;     (append ticket-struct (cons 'fixVersions (list (list (cons 'id fixVersions))))))
+    (if components
+        (append ticket-struct (cons 'components (list (list (cons 'id components))))))
+
     ticket-struct))
 
 ;;;###autoload
 (defun org-jira-create-issue ()
   "Create an issue in PROJECT"
   (interactive)
-  (let* ((project (cdr (rassoc (completing-read "Project: " (mapcar 'cdr (jiralib-get-projects)))
-                                          (jiralib-get-projects))))
-         (component (car (rassoc (completing-read "Component: " (mapcar 'cdr (jiralib-get-components project)))
-                                 (jiralib-get-components project))))
-         (issue-type (car (rassoc (completing-read "IssueType: " (mapcar 'cdr (jiralib-get-issue-types)))
-                                  (jiralib-get-issue-types))))
-         (priority (car (rassoc (completing-read "Priority: " (mapcar 'cdr (jiralib-get-priorities)))
-                                (jiralib-get-priorities))))
-         (assignee (car (rassoc (completing-read "Assignee: " (mapcar 'cdr (jiralib-get-assignable-users project)))
-                                (jiralib-get-assignable-users project))))
-         (versions (car (rassoc (completing-read "Version: " (mapcar 'cdr (jiralib-get-versions project)))
-                                (jiralib-get-versions project))))
-         (fixVersions (car (rassoc (completing-read "Fix version: " (mapcar 'cdr (jiralib-get-fixVersions project)))
-                                (jiralib-get-fixVersions project))))
+  (let* ((project (let ((proj (jiralib-get-projects)))
+                    (if proj
+                        (cdr (rassoc (completing-read "Project: " (mapcar 'cdr proj)) proj)))))
+         (components (let ((comp (jiralib-get-components project)))
+                      (if comp
+                          (car (rassoc (completing-read "Component: " (mapcar 'cdr comp)) comp)))))
+         (issue-type (let ((type (jiralib-get-issue-types)))
+                       (if type
+                           (car (rassoc (completing-read "IssueType: " (mapcar 'cdr type)) type)))))
+         (priority (let ((prio (jiralib-get-priorities)))
+                     (if prio
+                         (car (rassoc (completing-read "Priority: " (mapcar 'cdr prio)) prio)))))
+         (assignee (let ((assign (jiralib-get-assignable-users project)))
+                     (if assign
+                         (car (rassoc (completing-read "Assignee: " (mapcar 'cdr assign)) assign)))))
+         (versions (let ((ver (jiralib-get-versions project)))
+                     (if ver
+                         (car (rassoc (completing-read "Version: " (mapcar 'cdr ver)) ver)))))
+         (fixVersions nil)
+         ;; (fixVersions (car (rassoc (completing-read "Fix version: " (mapcar 'cdr (jiralib-get-fixVersions project)))
+         ;;                        (jiralib-get-fixVersions project))))
          (summary (read-string "Summary: "))
          (description (read-string "Description: ")))
-    (if (or (equal project "")
-            (equal component "")
-            (equal issue-type "")
-            (equal priority "")
-            (equal assignee "")
+    (if (or (not project)
+            (not issue-type)
+            (not priority)
+            (not assignee)
             (equal versions "")
-            (equal fixVersions "")
-            (equal summary "")
-            (equal description ""))
+            ;; (equal fixVersions "")
+            (equal summary ""))
         (error "You must provide all informations!"))
     (let* ((parent-id nil)
-           (ticket-struct (org-jira-get-issue-struct parent-id project component issue-type priority
+           (ticket-struct (org-jira-get-issue-struct parent-id project components issue-type priority
                                                      nil assignee versions
                                                      fixVersions summary description)))
       (jiralib-create-issue ticket-struct)
