@@ -806,13 +806,13 @@ See`org-jira-get-issue-list'"
                               (cons 'assignee (list (cons 'name assignee)))
                               (cons 'description description))))
     (if priority
-        (append ticket-struct (cons 'priority (list (cons 'id priority)))))
+        (append ticket-struct (list (cons 'priority (list (cons 'id priority))))))
     (if versions
-        (append ticket-struct (cons 'versions (list (list (cons 'id versions))))))
+        (append ticket-struct (list (cons 'versions (list (list (cons 'id versions)))))))
     ;; (if fixversions
     ;;     (append ticket-struct (cons 'fixVersions (list (list (cons 'id fixVersions))))))
     (if components
-        (append ticket-struct (cons 'components (list (list (cons 'id components))))))
+        (append ticket-struct (list (cons 'components (list (list (cons 'id components)))))))
 
     ticket-struct))
 
