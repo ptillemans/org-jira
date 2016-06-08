@@ -257,9 +257,7 @@ COND-VALUE is the field to use as the value for condition"
 
 (defun jiralib-update-issue (key fields)
   "Update the issue with id KEY with the values in FIELDS."
-
   (jiralib-call "updateIssue" key fields))
-
 
 (defvar jiralib-status-codes-cache nil)
 

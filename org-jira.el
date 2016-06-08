@@ -311,7 +311,7 @@ Example: \"2012-01-09T08:59:15.000Z\" becomes \"2012-01-09
 
 (defun org-jira-get-issue-val (key issue)
   "Return the value associated with key KEY of issue ISSUE."
-  (let ((tmp  (or (org-jira-find-value issue 'fields key 'name) "")))
+  (let ((tmp  (or (org-jira-find-value issue 'fields key 'key) "")))
     (unless (stringp tmp)
       (setq tmp (or (org-jira-find-value issue key) "")))
     (unless (stringp tmp)
@@ -435,8 +435,7 @@ See`org-jira-get-issue-list'"
                 (setq project-buffer (or (find-buffer-visiting project-file)
                                          (find-file project-file)))
                 (with-current-buffer project-buffer
-                  (org-jira-write-issue issue-id fields)
-                  ))))
+                  (org-jira-write-issue issue-id fields)))))
           (cdr issues))
     (switch-to-buffer project-buffer)
     (delete-trailing-whitespace)))
