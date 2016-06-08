@@ -243,7 +243,7 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
         (find-file projects-file))
     (org-jira-mode t)
     (save-excursion
-      (let* ((oj-projs (jiralib-get-projects)))
+      (let* ((oj-projs (jiralib-get-projects-details)))
         (mapc (lambda (proj)
                 (let* ((proj-key (org-jira-find-value proj 'key))
                        (proj-headline (format "Project: [[file:%s.org][%s]]" proj-key proj-key)))
@@ -259,8 +259,6 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
                           (org-narrow-to-subtree)
                           (end-of-line))
                       (goto-char (point-max))
-                      (unless (looking-at "^")
-                        (insert "\n"))
                       (insert "* ")
                       (insert proj-headline)
                       (org-narrow-to-subtree))

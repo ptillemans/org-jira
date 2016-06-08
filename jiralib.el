@@ -587,6 +587,10 @@ Return no more than MAX-NUM-RESULTS."
           (jiralib-make-assoc-list (jiralib-call "getProjectsNoSchemes" "description,projectKeys") 'id 'key)))
   jiralib-projects-list)
 
+(defun jiralib-get-projects-details ()
+  "Return a list of projects details available to the user."
+  (jiralib-call "getProjectsNoSchemes" "description,lead,projectKeys,url"))
+
 (defun jiralib-get-saved-filters ()
   "Get all saved filters available for the currently logged in user."
   (jiralib-make-assoc-list (jiralib-call "getSavedFilters") 'id 'name))
