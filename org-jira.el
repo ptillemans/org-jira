@@ -893,8 +893,9 @@ See`org-jira-get-issue-list'"
             (setq key (symbol-name key)))
           (when (string= key "key")
             (setq key "ID"))
-          (or (org-entry-get (point) key)
-              "")))))
+          ;; DEBUG: TO BE REMOVED
+          (message "key=%s value=%s" key (org-entry-get (point) key))
+          (or (org-entry-get (point) key) "")))))
 
 (defvar org-jira-actions-history nil)
 (defun org-jira-read-action (actions)
@@ -1014,8 +1015,9 @@ See`org-jira-get-issue-list'"
            (org-issue-resolution (org-jira-get-issue-val-from-org 'resolution))
            (org-issue-priority (org-jira-get-issue-val-from-org 'priority))
            (org-issue-type (org-jira-get-issue-val-from-org 'type))
-           (org-issue-assignee (org-jira-get-issue-val-from-org 'assignee))
+           (org-issue-assignee (jiralib-get-user(org-jira-get-issue-val-from-org 'assignee)))
            (org-issue-status (org-jira-get-issue-val-from-org 'status))
+           (org-issue-summary (org-jira-get-issue-val-from-org 'summary))
            (issue (jiralib-get-issue issue-id))
            (project (org-jira-get-issue-val 'project issue))
            (project-components (jiralib-get-components project)))
@@ -1028,16 +1030,16 @@ See`org-jira-get-issue-list'"
                                            (lambda (item)
                                              (let ((comp-id (car (rassoc item project-components))))
                                                (if comp-id
-                                                   `((id . comp-id)
-                                                     (name . item))
+                                                   `((id . ,comp-id)
+                                                     (name . ,item))
                                                  nil)))
                                            (split-string org-issue-components ",\\s *"))))
                                   (cons 'priority (let ((id (car (rassoc org-issue-priority (jiralib-get-priorities)))))
                                                     `((id . ,id)
                                                       (name . ,org-issue-priority))))
                                   (cons 'description org-issue-description)
-                                  (cons 'assignee (jiralib-get-user org-issue-assignee))
-                                  (cons 'summary (org-jira-get-issue-val-from-org 'summary))))
+                                  (cons 'assignee org-issue-assignee)
+                                  (cons 'summary org-issue-summary)))
       (org-jira-get-issues (list (jiralib-get-issue issue-id))))))
 
 
