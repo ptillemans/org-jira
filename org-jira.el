@@ -86,13 +86,13 @@
 
 (defmacro ensure-on-issue (&rest body)
   "Make sure we are on an issue heading, before executing BODY."
-
   `(save-excursion
-     (while (org-up-heading-safe)) ; go to the top heading
-     (let ((org-jira-id (org-jira-id)))
-       (unless (and org-jira-id (string-match (jiralib-get-issue-regexp) org-jira-id))
-         (error "Not on a issue region!")))
-     ,@body))
+     (save-restriction
+       (while (org-up-heading-safe)) ; go to the top heading
+       (let ((org-jira-id (org-jira-id)))
+         (unless (and org-jira-id (string-match (jiralib-get-issue-regexp) org-jira-id))
+           (error "Not on a issue region!")))
+       ,@body)))
 
 (defmacro ensure-on-issue-id (issue-id &rest body)
   "Make sure we are on an issue heading with id ISSUE-ID, before executing BODY."
@@ -362,10 +362,10 @@ jql."
 
 (defun org-jira-get-issue-by-id (id)
   "Get an issue by its ID."
-  (interactive (list (read-string "Issue ID: " "IMINAN-" 'org-jira-issue-id-history)))
+  (interactive (list (read-string "Issue ID: " nil 'org-jira-issue-id-history)))
   (push id org-jira-issue-id-history)
   (let ((jql (format "id = %s" id)))
-    (jiralib-do-jql-search jql)))
+    (list (jiralib-do-jql-search jql))))
 
 ;;;###autoload
 (defun org-jira-get-issues-headonly (issues)
