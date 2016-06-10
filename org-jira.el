@@ -425,7 +425,6 @@ See`org-jira-get-issue-list'"
 
 
 (defun org-jira--get-issues (issues)
-
   (let (project-buffer)
     (mapc (lambda (issue)
             (let* ((issue-id (cdr (assoc 'key issue)))
@@ -435,10 +434,11 @@ See`org-jira-get-issue-list'"
                 (setq project-buffer (or (find-buffer-visiting project-file)
                                          (find-file project-file)))
                 (with-current-buffer project-buffer
-                  (org-jira-write-issue issue-id fields)))))
+                  (org-jira-write-issue issue-id fields)
+                  (delete-trailing-whitespace)
+                  (save-buffer)))))
           (cdr issues))
-    (switch-to-buffer project-buffer)
-    (delete-trailing-whitespace)))
+    (switch-to-buffer project-buffer)))
 
 (defun org-jira-write-issue (issue-id fields)
   (let* ((issue-summary (cdr (assoc 'summary fields))))
@@ -464,8 +464,9 @@ See`org-jira-get-issue-list'"
 
       (org-jira-update-comments-for-current-issue)
       (org-jira-update-worklogs-for-current-issue))
-    (save-restriction
-      (mapc 'org-jira-handle-subtask (cdr (assoc 'subtasks fields))))))
+    (if (not (= (length (cdr (assoc 'subtasks fields))) 0))
+        (save-restriction
+          (mapc 'org-jira-handle-subtask (cdr (assoc 'subtasks fields)))))))
 
 (defun org-jira-handle-subtask (issue)
   (let* ((subtask-id (cdr (assoc 'key issue)))
@@ -489,8 +490,8 @@ See`org-jira-get-issue-list'"
         (forward-thing 'whitespace)
         (kill-line))
     (goto-char (point-max))
-    (unless (looking-at "^")
-      (insert "\n"))
+    ;; (unless (looking-at "^")
+    ;;   (insert "\n"))
     (insert "* "))
   (insert (concat (cond (org-jira-use-status-as-todo
                          (upcase (replace-regexp-in-string " " "-" status)))
@@ -636,8 +637,8 @@ See`org-jira-get-issue-list'"
                   (org-narrow-to-subtree)
                   (delete-region (point-min) (point-max)))
                 (goto-char (point-max))
-                (unless (looking-at "^")
-                  (insert "\n"))
+                ;; (unless (looking-at "^")
+                ;;   (insert "\n"))
                 (insert "** ")
                 (insert comment-headline "\n")
                 (org-narrow-to-subtree)
@@ -673,8 +674,8 @@ See`org-jira-get-issue-list'"
                   (org-narrow-to-subtree)
                   (delete-region (point-min) (point-max)))
                 (goto-char (point-max))
-                (unless (looking-at "^")
-                  (insert "\n"))
+                ;; (unless (looking-at "^")
+                ;;   (insert "\n"))
                 (insert "** ")
                 (insert worklog-headline "\n")
                 (org-narrow-to-subtree)
@@ -869,7 +870,7 @@ See`org-jira-get-issue-list'"
           (equal summary ""))
       (error "Must provide all information!"))
   (let* ((parent-id (org-jira-parse-issue-id))
-         (ticket-struct (org-jira-get-issue-struct project type summary description)))
+         (ticket-struct (org-jira-get-issue-struct parent-id project type summary description)))
     (org-jira-get-issues (list (jiralib-create-subtask ticket-struct parent-id)))))
 
 (defun org-jira-strip-string (str)
