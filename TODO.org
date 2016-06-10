@@ -47,7 +47,3 @@ Progress issue workflow
 Refresh issue from jira to org
 ** org-jira-todo-to-jira
 Convert an ordinary todo item to a jira ticket
-** org-jira-update-comment
-Update or create a comment for the current issue
-** org-jira-update-issue
-Update an issue

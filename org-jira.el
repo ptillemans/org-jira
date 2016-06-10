@@ -456,7 +456,14 @@ See`org-jira-get-issue-list'"
       (mapc (lambda (entry)
               (let ((val (org-jira-get-issue-val entry fields)))
                 (when (and val (not (string= val "")))
-                  (org-entry-put (point) (symbol-name entry) val))))
+                  ;; special case with 'priority
+                  ;; 'priority is included in org-special-properties
+                  ;; SO IT CAN'T BE USED AS ORG-ENTRY
+                  (cond
+                   ((eq entry 'priority)
+                    (org-entry-put (point) "prio" val))
+                   (t
+                    (org-entry-put (point) (symbol-name entry) val))))))
             '(assignee reporter issuetype priority resolution status components created updated))
       (org-entry-put (point) "ID" issue-id)
 
@@ -877,9 +884,7 @@ See`org-jira-get-issue-list'"
   "Remove the beginning and ending white space for a string STR."
   (replace-regexp-in-string "\\`\n+\\|\n+\\'" "" str))
 
-(defun org-jira-get-issue-val-from-org (key)
-  "Return the requested value by KEY from the current issue."
-  (ensure-on-issue
+(defun org-jira-find-prop (key)
    (cond ((eq key 'description)
           (org-goto-first-child)
           (forward-thing 'whitespace)
@@ -894,9 +899,11 @@ See`org-jira-get-issue-list'"
             (setq key (symbol-name key)))
           (when (string= key "key")
             (setq key "ID"))
-          ;; DEBUG: TO BE REMOVED
-          (message "key=%s value=%s" key (org-entry-get (point) key))
-          (or (org-entry-get (point) key) "")))))
+          (or (org-entry-get (point) key) ""))))
+
+(defun org-jira-get-issue-val-from-org (key)
+  "Return the requested value by KEY from the current issue."
+  (ensure-on-issue (org-jira-find-prop key)))
 
 (defvar org-jira-actions-history nil)
 (defun org-jira-read-action (actions)
@@ -1006,43 +1013,31 @@ See`org-jira-get-issue-list'"
      (jiralib-progress-workflow-action issue-id action custom-fields))
    (org-jira-refresh-issue)))
 
+(defun update-issue ()
+  (let* ((org-issue-description (replace-regexp-in-string "^  " "" (org-jira-get-issue-val-from-org 'description)))
+         (org-issue-resolution (org-jira-get-issue-val-from-org 'resolution))
+         (org-issue-priority (org-jira-get-issue-val-from-org 'prio))
+         (org-issue-type (org-jira-get-issue-val-from-org 'type))
+         (org-issue-assignee (jiralib-get-user (org-jira-get-issue-val-from-org 'assignee)))
+         (org-issue-status (org-jira-get-issue-val-from-org 'status))
+         (org-issue-summary (org-jira-get-issue-val-from-org 'summary))
+         (issue (jiralib-get-issue issue-id))
+         (project (org-jira-get-issue-val 'project issue))
+         (project-components (jiralib-get-components project)))
+
+    (jiralib-update-issue issue-id
+                          (list
+                           (cons 'priority (let ((id (car (rassoc org-issue-priority (jiralib-get-priorities)))))
+                                             `((id . ,id)
+                                               (name . ,org-issue-priority))))
+                           (cons 'description org-issue-description)
+                           (cons 'assignee org-issue-assignee)
+                           (cons 'summary org-issue-summary)))
+    (org-jira-get-issues (list (jiralib-get-issue issue-id)))))
 
 (defun org-jira-update-issue-details (issue-id)
   "Update the details of issue ISSUE-ID."
-  (ensure-on-issue-id
-      issue-id
-    (let* ((org-issue-components (org-jira-get-issue-val-from-org 'components))
-           (org-issue-description (replace-regexp-in-string "^  " "" (org-jira-get-issue-val-from-org 'description)))
-           (org-issue-resolution (org-jira-get-issue-val-from-org 'resolution))
-           (org-issue-priority (org-jira-get-issue-val-from-org 'priority))
-           (org-issue-type (org-jira-get-issue-val-from-org 'type))
-           (org-issue-assignee (jiralib-get-user(org-jira-get-issue-val-from-org 'assignee)))
-           (org-issue-status (org-jira-get-issue-val-from-org 'status))
-           (org-issue-summary (org-jira-get-issue-val-from-org 'summary))
-           (issue (jiralib-get-issue issue-id))
-           (project (org-jira-get-issue-val 'project issue))
-           (project-components (jiralib-get-components project)))
-
-      (jiralib-update-issue issue-id ; (jiralib-update-issue "FB-1" '((components . ["10001" "10000"])))
-                            (list (cons
-                                   'components
-                                   (apply 'vector
-                                          (cl-mapcan
-                                           (lambda (item)
-                                             (let ((comp-id (car (rassoc item project-components))))
-                                               (if comp-id
-                                                   `((id . ,comp-id)
-                                                     (name . ,item))
-                                                 nil)))
-                                           (split-string org-issue-components ",\\s *"))))
-                                  (cons 'priority (let ((id (car (rassoc org-issue-priority (jiralib-get-priorities)))))
-                                                    `((id . ,id)
-                                                      (name . ,org-issue-priority))))
-                                  (cons 'description org-issue-description)
-                                  (cons 'assignee org-issue-assignee)
-                                  (cons 'summary org-issue-summary)))
-      (org-jira-get-issues (list (jiralib-get-issue issue-id))))))
-
+  (ensure-on-issue-id issue-id (update-issue)))
 
 (defun org-jira-parse-issue-id ()
   "Get issue id from org text."
