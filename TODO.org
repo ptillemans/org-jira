@@ -25,8 +25,14 @@ Create an issue
 Get list of projects.
 ** ➱ INPROGRESS org-jira-get-issues
 Get list of issues. Default is get unfinished issues assigned
+** ➱ IN-PROGRESS org-jira-update-issue
+Update an issue
+** org-jira-update-comment
+Update or create a comment for the current issue
 ** org-jira-create-subtask
 Create an subtask issue
+** ➱ IN-PROGRESS org-jira-get-issue
+Get issue by ID
 ** org-jira-get-issues-from-filter
 Get issues from filter which are jql created and saved on the
 ** org-jira-get-issues-from-filter-headonly
