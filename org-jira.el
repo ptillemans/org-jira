@@ -477,16 +477,16 @@ See`org-jira-get-issue-list'"
 
 (defun org-jira-handle-subtask (issue)
   (let* ((subtask-id (cdr (assoc 'key issue)))
-         (subtask-fields (cdr(assoc 'fields issue)))
+         (subtask-fields (cdr (assoc 'fields issue)))
          (subtask-point (org-find-entry-with-id subtask-id))
          (parent-point (point))
-         (subtask-summary (cdr (assoc 'summary fields))))
+         (subtask-summary (cdr (assoc 'summary subtask-fields))))
     (if subtask-point
         (progn
           (goto-char subtask-point)
           (ignore-errors (org-refile nil nil (list nil (buffer-file-name) nil parent-point))))
       (org-jira-write-issue-header (org-find-entry-with-id subtask-id)
-                                   (org-jira-get-issue-val 'status fields)
+                                   (org-jira-get-issue-val 'status subtask-fields)
                                    subtask-summary))))
 
 (defun org-jira-write-issue-header (issue-point status issue-headline)
