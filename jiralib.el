@@ -35,6 +35,7 @@
 (require 'request)
 (require 'json)
 (require 'url-parse)
+(require 'seq)
 
 ;;; Code:
 (defgroup jiralib nil
@@ -156,6 +157,10 @@ when invoking it through `jiralib-call', the call shoulbe be:
     ('getWorklogs nil) ; fixme
     ('addComment (jiralib--rest-call-it
                   (format "/rest/api/2/issue/%s/comment" (first params))
+                  :type "POST"
+                  :data (json-encode (second params))))
+    ('addWorklogAndAutoAdjustRemainingEstimate (jiralib--rest-call-it
+                  (format "/rest/api/2/issue/%s/worklog" (first params))
                   :type "POST"
                   :data (json-encode (second params))))
     ('createIssue (jiralib--rest-call-it
@@ -412,7 +417,7 @@ hours; 10h, 120h days; 10d, 120d weeks.
 COMMENT will be added to this worklog."
   (jiralib-call "addWorklogAndAutoAdjustRemainingEstimate"
                 issue-key
-                `((startDate . ,start-date)
+                `((started . ,start-date)
                   (timeSpent . ,time-spent)
                   (comment   . ,comment))))
 
