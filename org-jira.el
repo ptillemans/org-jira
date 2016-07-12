@@ -170,6 +170,7 @@
     (define-key org-jira-map (kbd "C-c pg") 'org-jira-get-projects)
     (define-key org-jira-map (kbd "C-c ib") 'org-jira-browse-issue)
     (define-key org-jira-map (kbd "C-c ig") 'org-jira-get-issues)
+    (define-key org-jira-map (kbd "C-c ia") 'org-jira-get-issue-in-current-buffer)
     (define-key org-jira-map (kbd "C-c ih") 'org-jira-get-issues-headonly)
     (define-key org-jira-map (kbd "C-c if") 'org-jira-get-issues-from-filter-headonly)
     (define-key org-jira-map (kbd "C-c iF") 'org-jira-get-issues-from-filter)
@@ -183,6 +184,9 @@
     (define-key org-jira-map (kbd "C-c cu") 'org-jira-update-comment)
     (define-key org-jira-map (kbd "C-c wu") 'org-jira-update-worklog)
     (define-key org-jira-map (kbd "C-c tj") 'org-jira-todo-to-jira)
+    (define-key org-jira-map (kbd "C-c wa") 'org-jira-add-blank-worklog)
+    (define-key org-jira-map (kbd "C-c ii") 'org-jira-clock-in)
+    (define-key org-jira-map (kbd "C-c id") 'org-jira-done)
     org-jira-map))
 
 
@@ -775,7 +779,8 @@ See`org-jira-get-issue-list'"
                     org-jira-default-assignee
                     (org-get-heading t t)
                     (org-get-entry)))
-   (delete-region (point-min) (point-max))))
+   ;;(delete-region (point-min) (point-max))
+   ))
 
 
 ;;;###autoload
@@ -874,7 +879,7 @@ See`org-jira-get-issue-list'"
                               (cons 'issuetype (list (cons 'id issue-type)))
                               (cons 'assignee (list (cons 'name assignee)))
                               (cons 'description description)
-                              (cons 'customfield_10002 org-jira-default-account))))
+                              (cons 'customfield_10002 (car (cdr (assoc project org-jira-default-accounts)))))))
     (if priority
         (append ticket-struct (list (cons 'priority (list (cons 'id priority))))))
     (if versions
