@@ -470,7 +470,8 @@ Return nil if the field is not found"
 
 (defun jiralib-get-project-id (key)
   "Return the ID of the JIRA project with name KEY."
-  (let ((projects jiralib-projects-list)
+  ;;we need to make sure that the list is populated
+  (let ((projects (jiralib-get-projects))
         (id nil))
     (dolist (project projects)
       (if (equal (cdr project) key)

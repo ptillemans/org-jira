@@ -600,6 +600,34 @@ See`org-jira-get-issue-list'"
   (org-set-property "comment" "")
 )
 
+(defun org-clock-start-time-current-item ()
+  "the start time for current subtree."
+  (interactive)
+  (org-with-silent-modifications
+   (let* ((re (concat "^\\(\\*+\\)[ \t]\\|^[ \t]*"
+		      org-clock-string
+		      "[ \t]*\\(?:\\(\\[.*?\\]\\)-+\\(\\[.*?\\]\\)\\|=>[ \t]+\\([0-9]+\\):\\([0-9]+\\)\\)"))
+	  ts
+	  ts-epoch)
+     (save-excursion
+       (save-restriction
+       (org-narrow-to-subtree)
+       (goto-char (point-max))
+       (while (re-search-backward re nil t)
+         (cond
+          ((match-end 2)
+           ;; Two time stamps
+           (setq current-ts (match-string 2)
+                 current-ts (apply 'encode-time (org-parse-time-string current-ts))
+                 current-ts-epoch (org-float-time current-ts))
+           (when (or (not ts-epoch)
+                     (> ts-epoch current-ts-epoch))
+                 (setq ts-epoch current-ts-epoch
+                       ts current-ts))
+           )))
+       ts ;;return the minimum start time
+       )))))
+
 (defun org-jira-update-worklog ()
   "Update a worklog for the current issue."
   (interactive)
@@ -612,7 +640,7 @@ See`org-jira-get-issue-list'"
                         timeSpent
                       (read-string "Input the time you spent (such as 3w 1d 2h): ")))
          (timeSpent (replace-regexp-in-string " \\(\\sw\\)\\sw*\\(,\\|$\\)" "\\1" timeSpent))
-         (startDate (format-time-string "%Y-%m-%dT%T.000+0000" org-clock-start-time))
+         (startDate (format-time-string "%Y-%m-%dT%T.000+0000" org-clock-start-time-current-item))
 ;;         (startDate (org-jira-get-from-org 'worklog 'startDate))
          (startDate (if startDate
                         startDate
@@ -643,7 +671,7 @@ See`org-jira-get-issue-list'"
    (delete-region (point-min) (point-max))))
 
 (defun org-jira-mark-current-worklog-submitted ()
-  "Delete the current worklog."
+  "Mark the current worklog as submitted."
   (ensure-on-worklog
    (org-set-property "submitted_on" (format-time-string "%a %b %d %H:%M:%S %Z %Y"  (current-time)))))
 
@@ -768,7 +796,6 @@ See`org-jira-get-issue-list'"
 (defun org-jira-todo-to-jira ()
   "Convert an ordinary todo item to a jira ticket."
   (interactive)
-  ;;(setq project (cdr (rassoc (last (org-get-tags)) (jiralib-get-projects))))
   (ensure-on-todo
    (when (org-jira-parse-issue-id)
      (error "Already on jira ticket"))
