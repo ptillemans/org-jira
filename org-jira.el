@@ -84,6 +84,9 @@
 (defvar org-jira-issue-id-history '()
   "Prompt history for issue id.")
 
+(defvar org-jira-tag "JIRA"
+  "Org mode tag for jira issues")
+
 (defmacro ensure-on-issue (&rest body)
   "Make sure we are on an issue heading, before executing BODY."
   `(save-excursion
@@ -265,6 +268,7 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
                       (goto-char (point-max))
                       (insert "* ")
                       (insert proj-headline)
+                      (newline)
                       (org-narrow-to-subtree))
                     (org-entry-put (point) "name" (org-jira-get-project-name proj))
                     (org-entry-put (point) "key" (org-jira-find-value proj 'key))
@@ -460,35 +464,37 @@ See`org-jira-get-issue-list'"
     (save-restriction
       (if at-point
           (org-jira-insert-issue-header (org-jira-get-issue-val 'status fields)
-                                    issue-summary (org-jira-get-issue-val 'project fields))
-        (goto-char (point-min))
-        (show-all)
-        (org-jira-write-issue-header (org-find-entry-with-id issue-id)
-                                     (org-jira-get-issue-val 'status fields)
-                                     issue-summary (org-jira-get-issue-val 'project fields))))
+                                        issue-summary
+                                        (org-jira-get-issue-val 'project fields))
+        (progn (goto-char (point-min))
+               (show-all)
+               (org-jira-write-issue-header (org-find-entry-with-id issue-id)
+                                            (org-jira-get-issue-val 'status fields)
+                                            issue-summary
+                                            (org-jira-get-issue-val 'project fields)))))
 
-      ;; Set up issue Properties
-      (mapc (lambda (entry)
-              (let ((val (org-jira-get-issue-val entry fields)))
-                (when (and val (not (string= val "")))
-                  ;; special case with 'priority
-                  ;; 'priority is included in org-special-properties
-                  ;; SO IT CAN'T BE USED AS ORG-ENTRY
-                  (cond
-                   ((eq entry 'priority)
-                    (org-entry-put (point) "prio" val))
-                   (t
-                    (org-entry-put (point) (symbol-name entry) val))))))
-            '(assignee reporter issuetype priority resolution status components created updated))
-      (org-entry-put (point) "ID" issue-id)
+    ;; Set up issue Properties
+    (mapc (lambda (entry)
+            (let ((val (org-jira-get-issue-val entry fields)))
+              (when (and val (not (string= val "")))
+                ;; special case with 'priority
+                ;; 'priority is included in org-special-properties
+                ;; SO IT CAN'T BE USED AS ORG-ENTRY
+                (cond
+                 ((eq entry 'priority)
+                  (org-entry-put (point) "prio" val))
+                 (t
+                  (org-entry-put (point) (symbol-name entry) val))))))
+          '(assignee reporter issuetype priority resolution status components created updated))
+    (org-entry-put (point) "ID" issue-id)
 
-      (org-jira-write-issue-headings '(description))
+    (org-jira-write-issue-headings '(description))
 
-      (org-jira-update-comments-for-current-issue)
-      (org-jira-update-worklogs-for-current-issue))
-    (if (not (= (length (cdr (assoc 'subtasks fields))) 0))
-        (save-restriction
-          (mapc 'org-jira-handle-subtask (cdr (assoc 'subtasks fields))))))
+    (org-jira-update-comments-for-current-issue)
+    (org-jira-update-worklogs-for-current-issue))
+  (if (not (= (length (cdr (assoc 'subtasks fields))) 0))
+      "(save-restriction
+        (mapc 'org-jira-handle-subtask (cdr (assoc 'subtasks fields))))"))
 
 (defun org-jira-handle-subtask (issue)
   (let* ((subtask-id (cdr (assoc 'key issue)))
@@ -502,7 +508,8 @@ See`org-jira-get-issue-list'"
           (ignore-errors (org-refile nil nil (list nil (buffer-file-name) nil parent-point))))
       (org-jira-write-issue-header (org-find-entry-with-id subtask-id)
                                    (org-jira-get-issue-val 'status subtask-fields)
-                                   subtask-summary))))
+                                   subtask-summary
+                                   (org-jira-get-issue-val 'project subtask-fields)))))
 
 (defun org-jira-insert-issue-header (status issue-headline project)
   (let ((do-not-move))
@@ -534,10 +541,8 @@ See`org-jira-get-issue-list'"
         (goto-char issue-point)
         (forward-thing 'whitespace)
         (kill-line))
-    (goto-char (point-max))
-    ;; (unless (looking-at "^")
-    ;;   (insert "\n"))
-    (insert "* "))
+    (progn (goto-char (point-max))
+           (insert "* ")))
   (insert (concat (cond (org-jira-use-status-as-todo
                          (upcase (replace-regexp-in-string " " "-" status)))
                         ((member status org-jira-done-states) "DONE")
@@ -546,14 +551,14 @@ See`org-jira-get-issue-list'"
 
   (save-excursion
     (unless (search-forward "\n" (point-max) 1)
-      (insert "\n")))
+      (newline)))
   (org-narrow-to-subtree)
   (org-change-tag-in-region
    (point-min)
    (save-excursion
      (forward-line 1)
      (point))
-   (replace-regexp-in-string "-" "_" (concat (concat org-jira-tag ":") project))
+   (replace-regexp-in-string "-" "_" (concat org-jira-tag ":" project))
    nil))
 
 (defun org-jira-write-issue-headings (headings)
@@ -844,7 +849,7 @@ See`org-jira-get-issue-list'"
    (car org-jira-project-read-history)))
 
 (defun org-jira-read-interactive-assoc-list (prompt-string assoc-data-list)
-  "Get the alist coming from jira and turn it a list 
+  "Get the alist coming from jira and turn it a list
    for the interactive prompts then return the code of selecte entry"
   (cdr (rassoc (completing-read prompt-string (mapcar 'cdr assoc-data-list)) assoc-data-list)))
 

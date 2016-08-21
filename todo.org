@@ -1,67 +1,49 @@
+* GENERAL
+** fix subtasks display
+** fix comments format
+** remove jira-users code, use get-assignable-users instead
+** use hash instead of dlist
 
-
-* TODO addWorklogAndAutoAdjustRemainingEstimate
-  :LOGBOOK:
-  - State "TODO"       from ""           [2016-03-05 Sat 18:23]
-  :END:
-
-* TODO createIssueWithParent
-  :LOGBOOK:
-  - State "TODO"       from ""           [2016-03-05 Sat 18:27]
-  :END:
-
-* [[https://developer.atlassian.com/jiradev/latest-updates/soap-and-xml-rpc-api-deprecation-notice/jira-soap-to-rest-migration-guide][useful link]]
-
-
-* DONE getFieldsForAction
-  CLOSED: [2016-03-06 Sun 12:00]
-  :LOGBOOK:
-  - State "DONE"       from "TODO"       [2016-03-06 Sun 12:00]
-  - State "TODO"       from "TODO"       [2016-03-06 Sun 12:00]
-  - State "TODO"       from ""           [2016-03-05 Sat 20:53]
-  :END:
-# getIssuesFromFilter
-# getIssuesFromJqlSearch
-* TODO getIssuesFromTextSearch
-  :LOGBOOK:
-  - State "TODO"       from ""           [2016-03-05 Sat 21:16]
-  :END:
-* TODO getIssuesFromTextSearchWithProject
-  :LOGBOOK:
-  - State "TODO"       from "TODO"       [2016-03-05 Sat 21:28]
-  - State "TODO"       from ""           [2016-03-05 Sat 21:16]
-  :END:
-# getIssueTypes
-# getPriorities
-# getProjectsNoSchemes
-# getResolutions
-* TODO getSavedFilters
-  :LOGBOOK:
-  - State "TODO"       from ""           [2016-03-05 Sat 21:28]
-  :END:
-* CANCELLED getServerInfo
-  CLOSED: [2016-03-05 Sat 21:28]
-  :LOGBOOK:
-  - State "CANCELLED"  from ""           [2016-03-05 Sat 21:28]
-  :END:
-# getStatuses
-* TODO getSubTaskIssueTypes
-  :LOGBOOK:
-  - State "TODO"       from ""           [2016-03-05 Sat 21:29]
-  :END:
-
-* TODO getWorklogs
-  :LOGBOOK:  
-  - State "TODO"       from ""           [2016-03-06 Sun 00:10]
-  :END:      
-* DONE progressWorkflowAction
-  CLOSED: [2016-03-06 Sun 12:00]
-  :LOGBOOK:
-  - State "DONE"       from "TODO"       [2016-03-06 Sun 12:00]
-  - State "TODO"       from ""           [2016-03-05 Sat 21:30]
-  :END:
-# updateIssue
-* TODO updateWorklogAndAutoAdjustRemainingEstimate
-  :LOGBOOK:
-  - State "TODO"       from ""           [2016-03-05 Sat 21:32]
-  :END:
+* KNOWN BUGS
+** ✔ FIXED org-jira-mode
+Toggle org-jira mode.
+** ✔ FIXED org-jira-browse-issue
+Open the current issue in external browser.
+** ✔ FIXED org-jira-copy-current-issue-key
+Copy the current issue's key into clipboard
+** ➱ IN-PROGRESS org-jira-create-issue
+Create an issue
+*** option: add custom variable to set mandatory fields to be set by project
+*** display issueType allowed by project
+*** open new buffer for description
+*** display choices in minibuffer
+*** manage multi versions
+*** ✔ DONE Fix createIssue by using "completing-read"
+*** ✔ DONE Separate versions/Fix versions
+*** display TODO using org-todo-keywords
+** ✔ FIXED org-jira-get-projects
+Get list of projects.
+** ➱ INPROGRESS org-jira-get-issues
+Get list of issues. Default is get unfinished issues assigned
+** ➱ IN-PROGRESS org-jira-update-issue
+Update an issue
+** org-jira-update-comment
+Update or create a comment for the current issue
+** org-jira-create-subtask
+Create an subtask issue
+** ➱ IN-PROGRESS org-jira-get-issue
+Get issue by ID
+** org-jira-get-issues-from-filter
+Get issues from filter which are jql created and saved on the
+** org-jira-get-issues-from-filter-headonly
+Get issues *head only* from saved filter. See `org-jira-get-issues-from-filter'
+** org-jira-get-issues-headonly
+Get list of issues assigned to you and unresolved, head
+** org-jira-get-subtasks
+Get subtasks for the current issue
+** org-jira-progress-issue
+Progress issue workflow
+** org-jira-refresh-issue
+Refresh issue from jira to org
+** org-jira-todo-to-jira
+Convert an ordinary todo item to a jira ticket

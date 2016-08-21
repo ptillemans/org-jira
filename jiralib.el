@@ -75,6 +75,8 @@ This will be used with USERNAME to compute password from
   "The name of the user logged into JIRA.
 This is maintained by `jiralib-login'.")
 
+(setq jiralib-use-restapi t)
+
 (defun jiralib-login (username password)
   "Login into JIRA as user USERNAME with PASSWORD.
 
@@ -213,6 +215,18 @@ when invoking it through `jiralib-call', the call shoulbe be:
   (decode-coding-region (point-min) (point-max) 'utf-8)
   (json-read))
 
+(cl-defun print-error (&key
+                       (data nil)
+                       (error-thrown nil)
+                       (symbol-status nil)
+                       (response response)
+                       &allow-other-keys)
+  (message (concat "Error: " (pp error-thrown)))
+  (message (concat "Data: " (pp data)))
+  (message (concat "Symbol-Status: " (pp symbol-status)))
+  (message (concat "Response: " (pp response))))
+
+
 (defun jiralib--rest-call-it (api &rest args)
   "Invoke the corresponding jira rest method API, passing ARGS to REQUEST."
   (append (request-response-data
@@ -221,6 +235,7 @@ when invoking it through `jiralib-call', the call shoulbe be:
                   :sync t
                   :headers `(,jiralib-token ("Content-Type" . "application/json"))
                   :parser 'utf-8-parser
+                  :error #'print-error
                   args)) nil))
 
 ;;;; Some utility functions
