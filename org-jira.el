@@ -467,6 +467,10 @@ See`org-jira-get-issue-list'"
     (switch-to-buffer project-buffer)))
 
 (defun org-jira-write-issue (issue-id fields &optional at-point)
+
+  (message "Write Issue: %s" issue-id)
+  (message "%s" (pp fields))
+
   (let* ((issue-summary (cdr (assoc 'summary fields))))
     (org-jira-mode t)
     (widen)
@@ -654,11 +658,11 @@ See`org-jira-get-issue-list'"
                         timeSpent
                       (read-string "Input the time you spent (such as 3w 1d 2h): ")))
          (timeSpent (replace-regexp-in-string " \\(\\sw\\)\\sw*\\(,\\|$\\)" "\\1" timeSpent))
-         (startDate (format-time-string "%Y-%m-%dT%T.000+0000" org-clock-start-time-current-item))
-;;         (startDate (org-jira-get-from-org 'worklog 'startDate))
+         (startDate (format-time-string "%Y-%m-%dT%T.000+0000" (org-clock-start-time-current-item)))
+         ;;         (startDate (org-jira-get-from-org 'worklog 'startDate))
          (startDate (if startDate
                         startDate
-                      (org-jira-time-format-to-jira (org-read-date nil nil nil "Inputh when did you start"))))
+                      (org-jira-time-format-to-jira (org-read-date nil nil nil "Input when did you start"))))
          (comment (replace-regexp-in-string "^  " "" (org-jira-get-from-org 'worklog 'comment)))
          (worklog `((comment . ,comment)
                     (timeSpent . ,timeSpent)
@@ -671,8 +675,8 @@ See`org-jira-get-issue-list'"
         (jiralib-update-worklog worklog)
       (if already_submitted (message "work log already submitted")
         (progn (jiralib-add-worklog-and-autoadjust-remaining-estimate issue-id startDate timeSpent comment)
-              (org-jira-mark-current-worklog-submitted)
-              (org-jira-update-worklogs-for-current-issue))))))
+               (org-jira-mark-current-worklog-submitted)
+               (org-jira-update-worklogs-for-current-issue))))))
 
 (defun org-jira-delete-current-comment ()
   "Delete the current comment."
@@ -938,20 +942,21 @@ See`org-jira-get-issue-list'"
   (interactive)
 
   (let* ((project (or project (let ((proj (jiralib-get-projects)))
-                    (if proj
-                        (cdr (rassoc (completing-read "Project: " (mapcar 'cdr proj)) proj))))))
+                                (if proj
+                                    (cdr (rassoc (completing-read "Project: " (mapcar 'cdr proj)) proj))))))
          (components nil);; (let ((comp (jiralib-get-components project)))
          ;;              (if comp
          ;;                  (car (rassoc (completing-read "Component: " (mapcar 'cdr comp)) comp)))))
          (issue-type (or issue_type (let ((type (jiralib-get-issue-types)))
-                       (if type
-                           (car (rassoc (completing-read "IssueType: " (mapcar 'cdr type)) type))))))
+                                      (if type
+                                          (car (rassoc (completing-read "IssueType: " (mapcar 'cdr type)) type))))))
          (priority (or priority (let ((prio (jiralib-get-priorities)))
-                     (if prio
-                         (car (rassoc (completing-read "Priority: " (mapcar 'cdr prio)) prio))))))
-         (assignee (or assignee (let ((assign (jiralib-get-assignable-users project)))
-                     (if assign
-                         (car (rassoc (completing-read "Assignee: " (mapcar 'cdr assign)) assign))))))
+                                  (if prio
+                                      (car (rassoc (completing-read "Priority: " (mapcar 'cdr prio)) prio))))))
+         (assignee (or assignee
+                       (let ((assign (jiralib-get-assignable-users project)))
+                         (if assign
+                             (car (rassoc (completing-read "Assignee: " (mapcar 'cdr assign)) assign))))))
          (versions nil);;(let ((ver (jiralib-get-versions project)))
          ;;            (if ver
          ;;                (car (rassoc (completing-read "Version: " (mapcar 'cdr ver)) ver)))))
@@ -1163,7 +1168,8 @@ See`org-jira-get-issue-list'"
          (org-issue-type (org-jira-get-issue-val-from-org 'type))
          (org-issue-assignee (jiralib-get-user (org-jira-get-issue-val-from-org 'assignee)))
          (org-issue-status (org-jira-get-issue-val-from-org 'status))
-         (org-issue-summary (org-jira-get-issue-val-from-org 'summary))
+         (org-issue-summary (replace-regexp-in-string "^\[[A-Za-z0-9-]*\] " ""
+                                                      (org-jira-get-issue-val-from-org 'summary)))
          (issue (jiralib-get-issue issue-id))
          (project (org-jira-get-issue-val 'project issue))
          (project-components (jiralib-get-components project)))
