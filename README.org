@@ -25,6 +25,9 @@ To save the settings in your .emacs, you need only do 2 things:
    If you do not set USERNAME here, then it will be prompted using the
    minibuffer; if you set the wrong username/password, then it won't work.
 
+** Configuration
+
+
 
 ** Commands supported
 

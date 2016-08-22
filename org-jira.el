@@ -74,8 +74,17 @@
 (defvar jira-users (list (cons "Full Name" "username"))
   "Jira has not api for discovering all users, so we should provide it somewhere else.")
 
+(defcustom org-jira-default-issue-type "Bug"
+  "Default issuetype for new issues"
+  :group 'org-jira)
+(defcustom org-jira-default-priority "Major"
+  "Default issuetype for new issues"
+  :group 'org-jira)
 (defcustom org-jira-use-status-as-todo nil
   "Use the JIRA status as the TODO tag value."
+  :group 'org-jira)
+(defcustom org-jira-default-assignee nil
+  "Default assignee for new tickets"
   :group 'org-jira)
 
 (defvar org-jira-mode-hook nil
@@ -806,7 +815,7 @@ See`org-jira-get-issue-list'"
      (error "Already on jira ticket"))
    (save-excursion (org-jira-create-issue
                     (first (last (org-get-tags))) ;; last return a list but first return an element, WTF?
-                    org-jira-default-issue-type
+                    (jiralib-get-issue-type-id org-jira-default-issue-type)
                     org-jira-default-priority
                     org-jira-default-assignee
                     (org-get-heading t t)
@@ -911,7 +920,7 @@ See`org-jira-get-issue-list'"
                               (cons 'issuetype (list (cons 'id issue-type)))
                               (cons 'assignee (list (cons 'name assignee)))
                               (cons 'description description)
-                              (cons 'customfield_10002 (car (cdr (assoc project org-jira-default-accounts)))))))
+                              )))
     (if priority
         (append ticket-struct (list (cons 'priority (list (cons 'id priority))))))
     (if versions

@@ -75,7 +75,7 @@ This will be used with USERNAME to compute password from
   "The name of the user logged into JIRA.
 This is maintained by `jiralib-login'.")
 
-(setq jiralib-use-restapi t)
+(setq jiralib-use-restapi )
 
 (defun jiralib-login (username password)
   "Login into JIRA as user USERNAME with PASSWORD.
@@ -304,6 +304,9 @@ will cache it."
     (setq jiralib-issue-types-cache
           (jiralib-make-assoc-list (jiralib-call "getIssueTypes") 'id 'name)))
   jiralib-issue-types-cache)
+
+(defun jiralib-get-issue-type-id (name)
+  (car (rassoc name (jiralib-get-issue-types))))
 
 (defvar jiralib-priority-codes-cache nil)
 
@@ -580,9 +583,9 @@ will cache it."
   "Get the issue with key ISSUE-KEY."
   (jiralib-call "getIssue" issue-key))
 
-(defun jiralib-get-issues-from-filter (filter-id)
-  "Get the issues from applying saved filter FILTER-ID."
-  (jiralib-call "getIssuesFromFilter" filter-id))
+(defun jiralib-get-issues-from-filter (filter-id)u
+       "Get the issues from applying saved filter FILTER-ID."
+       (jiralib-call "getIssuesFromFilter" filter-id))
 
 (defun jiralib-get-issues-from-text-search (search-terms)
   "Find issues using free text search SEARCH-TERMS."
