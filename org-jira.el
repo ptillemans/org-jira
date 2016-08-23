@@ -48,7 +48,7 @@
 (require 'org)
 (require 'jiralib)
 (require 'cl-lib)
-(require 'cl)
+(require 'cl-macs)
 
 (defgroup org-jira nil
   "Customisation group for org-jira."
@@ -112,7 +112,7 @@
   `(save-excursion
      (save-restriction
        (widen)
-       ;;(show-all)
+       ;;(outline-show-all)
        (goto-char (point-min))
        (let (p)
          (setq p (org-find-entry-with-id ,issue-id))
@@ -266,19 +266,19 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
                   (save-restriction
                     (widen)
                     (goto-char (point-min))
-                    (show-all)
-                    (setq p (org-find-exact-headline-in-buffer proj-headline))
-                    (if (and p (>= p (point-min))
-                             (<= p (point-max)))
-                        (progn
-                          (goto-char p)
-                          (org-narrow-to-subtree)
-                          (end-of-line))
-                      (goto-char (point-max))
-                      (insert "* ")
-                      (insert proj-headline)
-                      (newline)
-                      (org-narrow-to-subtree))
+                    (outline-show-all)
+                    (let ((p (org-find-exact-headline-in-buffer proj-headline)))
+                      (if (and p (>= p (point-min))
+                               (<= p (point-max)))
+                          (progn
+                            (goto-char p)
+                            (org-narrow-to-subtree)
+                            (end-of-line))
+                        (goto-char (point-max))
+                        (insert "* ")
+                        (insert proj-headline)
+                        (newline)
+                        (org-narrow-to-subtree)))
                     (org-entry-put (point) "name" (org-jira-get-project-name proj))
                     (org-entry-put (point) "key" (org-jira-find-value proj 'key))
                     (org-entry-put (point) "lead" (org-jira-get-project-lead proj))
@@ -338,23 +338,14 @@ Example: \"2012-01-09T08:59:15.000Z\" becomes \"2012-01-09
           ((member key '(created updated startDate))
            (org-jira-transform-time-format tmp))
           ((eq key 'status)
-           (if jiralib-use-restapi
-               (org-jira-find-value issue 'fields 'status 'statusCategory 'name)
-             (org-jira-find-value (jiralib-get-statuses) tmp)))
-          ((eq key 'resolution)
-           (if jiralib-use-restapi
-               tmp
-             (if (string= tmp "")
-                 ""
-               (org-jira-find-value (jiralib-get-resolutions) tmp))))
+           (org-jira-find-value issue 'fields 'status 'statusCategory 'name))
+          ((eq key 'resolution) tmp)
           ((eq key 'type)
-           (if jiralib-use-restapi
-               (org-jira-find-value issue 'fields 'issuetype 'name)
-             (org-jira-find-value (jiralib-get-issue-types) tmp)))
+           (org-jira-find-value issue 'fields 'issuetype 'name))
           ((eq key 'priority)
-           (if jiralib-use-restapi
-               (org-jira-find-value issue 'fields 'priority 'name)
-             (org-jira-find-value (jiralib-get-priorities) tmp)))
+           (org-jira-find-value issue 'fields 'priority 'name))
+          ((eq key 'assignee)
+           (org-jira-find-value issue 'fields 'assignee 'name))
           ((eq key 'description)
            (org-jira-strip-string tmp))
           (t
@@ -480,7 +471,7 @@ See`org-jira-get-issue-list'"
                                         issue-summary
                                         (org-jira-get-issue-val 'project fields))
         (progn (goto-char (point-min))
-               (show-all)
+               (outline-show-all)
                (org-jira-write-issue-header (org-find-entry-with-id issue-id)
                                             (org-jira-get-issue-val 'status fields)
                                             issue-summary
@@ -489,6 +480,7 @@ See`org-jira-get-issue-list'"
     ;; Set up issue Properties
     (mapc (lambda (entry)
             (let ((val (org-jira-get-issue-val entry fields)))
+              (message "   property %s --> %s" entry val)
               (when (and val (not (string= val "")))
                 ;; special case with 'priority
                 ;; 'priority is included in org-special-properties
@@ -528,22 +520,22 @@ See`org-jira-get-issue-list'"
   (let ((do-not-move))
     (unless (= (point) (point-max))
       (save-excursion
-        (setq current-point (point))
-        (setq do-not-move (if (= (line-beginning-position) current-point)
-                              (progn (outline-next-heading)
-                                     (outline-previous-heading)
-                                     (if (= current-point (point)) 't nil))
-                            nil)))
-      (unless do-not-move (outline-next-heading))))
-  (save-excursion
-    (insert "* ")
-    (insert (concat (cond (org-jira-use-status-as-todo
-                           (upcase (replace-regexp-in-string " " "-" status)))
-                          ((member status org-jira-done-states) "DONE")
-                          ("TODO")) " [" issue-id "] "
-                          issue-headline))
+        (let ((current-point (point))
+              (do-not-move (if (= (line-beginning-position) current-point)
+                               (progn (outline-next-heading)
+                                      (outline-previous-heading)
+                                      (if (= current-point (point)) 't nil))
+                             nil)))
+          (unless do-not-move (outline-next-heading)))))
+    (save-excursion
+      (insert "* ")
+      (insert (concat (cond (org-jira-use-status-as-todo
+                             (upcase (replace-regexp-in-string " " "-" status)))
+                            ((member status org-jira-done-states) "DONE")
+                            ("TODO")) " [" issue-id "] "
+                            issue-headline))
 
-    (insert "\n"))
+      (insert "\n")))
   (org-set-tags-to
    (list org-jira-tag (replace-regexp-in-string "-" "_" project))))
 
@@ -922,9 +914,11 @@ See`org-jira-get-issue-list'"
                                                          (format " (subtask of [jira:%s])" parent-id)
                                                        "")))
                               (cons 'issuetype (list (cons 'id issue-type)))
-                              (cons 'assignee (list (cons 'name assignee)))
                               (cons 'description description)
                               )))
+    (message "get-issue-struct assignee = %s" assignee)
+    (if assignee
+        (append ticket-struct (list (cons 'assignee (list (cons 'name assignee))))))
     (if priority
         (append ticket-struct (list (cons 'priority (list (cons 'id priority))))))
     (if versions
@@ -1173,6 +1167,9 @@ See`org-jira-get-issue-list'"
          (issue (jiralib-get-issue issue-id))
          (project (org-jira-get-issue-val 'project issue))
          (project-components (jiralib-get-components project)))
+
+    (message "Update issue: description = %s" org-issue-description )
+    (message "Update issue: assignee = %s" org-issue-assignee)
 
     (jiralib-update-issue issue-id
                           (list

@@ -75,7 +75,7 @@ This will be used with USERNAME to compute password from
   "The name of the user logged into JIRA.
 This is maintained by `jiralib-login'.")
 
-(setq jiralib-use-restapi )
+(setq jiralib-use-restapi t)
 
 (defun jiralib-login (username password)
   "Login into JIRA as user USERNAME with PASSWORD.
