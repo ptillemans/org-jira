@@ -283,7 +283,7 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
                     (org-entry-put (point) "key" (org-jira-find-value proj 'key))
                     (org-entry-put (point) "lead" (org-jira-get-project-lead proj))
                     (org-entry-put (point) "ID" (org-jira-find-value proj 'id))
-                    (org-entry-put (point) "url" (format "%s/browse/%s" (replace-regexp-in-string "/*$" "" jiralib-url) (org-jira-find-value proj 'key))))))
+                    (org-entry-put (point) "url" ( (org-jira-find-value proj 'key))))))
               oj-projs)))))
 
 (defun org-jira-get-issue-components (issue)
@@ -494,9 +494,13 @@ See`org-jira-get-issue-list'"
     (org-entry-put (point) "ID" issue-id)
 
     (org-jira-write-issue-headings '(description))
+    (newline)
 
     (org-jira-update-comments-for-current-issue)
-    (org-jira-update-worklogs-for-current-issue))
+    (newline)
+    (org-jira-update-worklogs-for-current-issue)
+    (newline))
+
   (if (not (= (length (cdr (assoc 'subtasks fields))) 0))
       "(save-restriction
         (mapc 'org-jira-handle-subtask (cdr (assoc 'subtasks fields))))"))
@@ -517,25 +521,25 @@ See`org-jira-get-issue-list'"
                                    (org-jira-get-issue-val 'project subtask-fields)))))
 
 (defun org-jira-insert-issue-header (status issue-headline project)
-  (let ((do-not-move))
-    (unless (= (point) (point-max))
-      (save-excursion
-        (let ((current-point (point))
-              (do-not-move (if (= (line-beginning-position) current-point)
-                               (progn (outline-next-heading)
-                                      (outline-previous-heading)
-                                      (if (= current-point (point)) 't nil))
-                             nil)))
-          (unless do-not-move (outline-next-heading)))))
+  (unless (= (point) (point-max))
     (save-excursion
-      (insert "* ")
-      (insert (concat (cond (org-jira-use-status-as-todo
-                             (upcase (replace-regexp-in-string " " "-" status)))
-                            ((member status org-jira-done-states) "DONE")
-                            ("TODO")) " [" issue-id "] "
-                            issue-headline))
+      (let* ((current-point (point))
+             (do-not-move (if (= (line-beginning-position) current-point)
+                              (progn (outline-next-heading)
+                                     (outline-previous-heading)
+                                     (if (= current-point (point)) 't nil))
+                            nil)))
+        (unless do-not-move (outline-next-heading)))))
+  (save-excursion
+    (insert "* ")
+    (insert (concat
+             (cond (org-jira-use-status-as-todo
+                    (upcase (replace-regexp-in-string " " "-" status)))
+                   ((member status org-jira-done-states) "DONE")
+                   ("TODO"))
+             " [" issue-id "] " issue-headline))
 
-      (insert "\n")))
+    (insert "\n"))
   (org-set-tags-to
    (list org-jira-tag (replace-regexp-in-string "-" "_" project))))
 
@@ -570,7 +574,11 @@ See`org-jira-get-issue-list'"
   (mapc (lambda (heading-entry)
           (ensure-on-issue-id
               issue-id
-            (let* ((entry-heading (concat (symbol-name heading-entry) (format ": [[%s][%s]]" (concat jiralib-url "/browse/" issue-id) issue-id))))
+            (let* ((entry-heading (concat
+                                   (symbol-name heading-entry)
+                                   (format ": [[%s][%s]]"
+                                           (jiralib-get-issue-url issue-id)
+                                           issue-id))))
               (setq p (org-find-exact-headline-in-buffer entry-heading))
               (if (and p (>= p (point-min))
                        (<= p (point-max)))
@@ -750,7 +758,8 @@ See`org-jira-get-issue-list'"
                   (unless (string= created updated)
                     (org-entry-put (point) "updated" updated)))
                 (goto-char (point-max))
-                (insert (display-comment (org-jira-find-value comment 'body))))))
+                (insert (display-comment (org-jira-find-value comment 'body)))
+                (newline))))
           (cl-mapcan (lambda (comment) (if (string= (org-jira-get-comment-author comment) "admin")
                                            nil
                                          (list comment)))
@@ -1061,7 +1070,7 @@ See`org-jira-get-issue-list'"
                          'org-jira-resolution-history
                          (car org-jira-resolution-history))))
         (car (rassoc resolution (jiralib-get-resolutions))))
-    (let* ((resolutions (org-jira-find-value rest-fieds 'resolution 'allowedValues))
+    (let* ((resolutions (org-jira-find-value fields 'resolution 'allowedValues))
            (resolution-name (completing-read
                              "Resolution: "
                              (mapcar (lambda (resolution)
@@ -1266,7 +1275,7 @@ it is a symbol, it will be converted to string."
   "Open the current issue in external browser."
   (interactive)
   (ensure-on-issue
-   (browse-url (concat (replace-regexp-in-string "/*$" "" jiralib-url) "/browse/" (org-jira-id)))))
+   (browse-url (concat (jiralib-get-baseurl) "/browse/" (org-jira-id)))))
 
 ;;;###autoload
 (defun org-jira-get-issues-from-filter (filter)

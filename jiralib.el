@@ -77,62 +77,59 @@ This is maintained by `jiralib-login'.")
 
 (setq jiralib-use-restapi t)
 
-(defun jiralib-login (username password)
-  "Login into JIRA as user USERNAME with PASSWORD.
 
-After a succesful login, store the authentication token in
-`jiralib-token'."
-  ;; NOTE that we cannot rely on `jiralib-call' because `jiralib-call' relies on
-  ;; us ;-)
+
+(defun jiralib-get-baseurl ()
+  "return the baseurl in canonical format, i.e. without trailing /"
+  (replace-regexp-in-string "/*$" "" jiralib-url))
+
+(defun jiralib-get-issue-url (issue-id)
+  "return a url to issue with the given issue id."
+  (format "%s/browse/%s" (jiralib-get-baseurl) issue-id))
+
+
+(defun jiralib-login (username password)
+  "Login into JIRA as user USERNAME with PASSWORD."
   (interactive
    (if (> 24 emacs-major-version)
        (let ((user (read-string "Username for Jira server login? "))
              (password (read-passwd "Password for Jira server login? ")))
          (list user password))
-     (let ((found (nth 0 (auth-source-search :max 1
-                                             :host (if (string= jiralib-host "")
-                                                       (url-host (url-generic-parse-url jiralib-url))
-                                                     jiralib-host)
-                                             :port (url-port (url-generic-parse-url jiralib-url))
-                                             :require '(:user :secret)
-                                             :create t)))
-           user secret)
-       (when found
-         (setq user (plist-get found :user)
-               secret
-               (let ((sec (plist-get found :secret)))
-                 (if (functionp sec)
-                     (funcall sec)
-                   sec)))
-         (list user secret)))))
-  (setq jiralib-token `("Authorization" . , (format "Basic %s" (base64-encode-string (concat username ":" password)))))
-  ;; At this poing, soap-invoke didn't raise an error, so the login
-  ;; credentials are OK.  use them to log into the web interface as
-  ;; well, as this will be used to link issues (an operation which is
-  ;; not exposed to the SOAP interface.
-  ;;
-  ;; Note that we don't validate the response at all -- not sure how we
-  ;; would do it...
-  (let ((url (concat jiralib-url "/secure/Dashboard.jspa?"
-                     (format "&os_username=%s&os_password=%s&os_cookie=true"
-                             username password))))
-    (let ((url-request-method "POST")
-          (url-package-name "Emacs jiralib.el")
-          (url-package-version "1.0")
-          (url-mime-charset-string "utf-8;q=1, iso-8859-1;q=0.5")
-          (url-request-data "abc")
-          (url-request-coding-system 'utf-8)
-          (url-http-attempt-keepalives t))
-      (let ((buffer (url-retrieve-synchronously url)))
-        ;; This is just a basic check that the page was retrieved
-        ;; correctly.  No error does not indicate a succesfull login,
-        ;; we would have to parse the HTML page to find that out...
-        (with-current-buffer buffer
-          (declare (special url-http-response-status))
-          (if (> url-http-response-status 299)
-              (error "Error logging into JIRA Web interface %s"
-                     url-http-response-status)))
-        (kill-buffer buffer)))))
+     (jiralib--get-credentials-from-authsource)))
+  (jiralib--set-token username password)
+  (jiralib--test-connection))
+
+(defun jiralib--get-credentials-from-authsource ()
+  (let ((found (nth 0 (auth-source-search :max 1
+                                          :host (if (string= jiralib-host "")
+                                                    (url-host (url-generic-parse-url jiralib-url))
+                                                  jiralib-host)
+                                          :port (url-port (url-generic-parse-url jiralib-url))
+                                          :require '(:user :secret)
+                                          :create t)))
+        user secret)
+    (when found
+      (let* ((user (plist-get found :user))
+             (sec (plist-get found :secret))
+             (secret (if (functionp sec)
+                         (funcall sec)
+                       sec)))
+        (list user secret)))))
+
+(defun jiralib--set-token (username password)
+  (setq jiralib-token
+        `("Authorization" . , (format "Basic %s"
+                                      (base64-encode-string
+                                       (concat username ":" password))))))
+
+(defun jiralib--test-connection ()
+  "get JIRA configuration to check if we are connected"
+
+  ;;; check access to the the current user information to verify
+  ;;; authentication succeeded
+  (jiralib--rest-call-it "rest/api/2/myself"))
+
+
 
 (defun jiralib-call (method &rest params)
   "Invoke the JIRA METHOD with supplied PARAMS.
@@ -151,91 +148,98 @@ when invoking it through `jiralib-call', the call shoulbe be:
   (unless jiralib-token
     (call-interactively 'jiralib-login))
   (case (intern method)
-    ('getStatuses (jiralib--rest-call-it "/rest/api/2/status"))
-    ('getIssueTypes (jiralib--rest-call-it "/rest/api/2/issuetype"))
-    ('getUser (jiralib--rest-call-it "/rest/api/2/user" :params `((username . ,(first params)))))
-    ('getAssignableUsers (jiralib--rest-call-it "/rest/api/2/user/assignable/search" :params `((project . ,(first params))(maxResults . ,"1000"))))
-    ('getVersions (jiralib--rest-call-it (format "/rest/api/2/project/%s/versions" (first params))))
+    ('getStatuses (jiralib--rest-call-it "status"))
+    ('getIssueTypes (jiralib--rest-call-it "issuetype"))
+    ('getUser (jiralib--rest-call-it "user" :params `((username . ,(first params)))))
+    ('getAssignableUsers (jiralib--rest-call-it "user/assignable/search" :params `((project . ,(first params))(maxResults . ,"1000"))))
+    ('getVersions (jiralib--rest-call-it (format "project/%s/versions" (first params))))
     ('getWorklogs nil) ; fixme
     ('addComment (jiralib--rest-call-it
-                  (format "/rest/api/2/issue/%s/comment" (first params))
+                  (format "issue/%s/comment" (first params))
                   :type "POST"
                   :data (json-encode (second params))))
     ('addWorklogAndAutoAdjustRemainingEstimate (jiralib--rest-call-it
-                  (format "/rest/api/2/issue/%s/worklog" (first params))
-                  :type "POST"
-                  :data (json-encode (second params))))
+                                                (format "issue/%s/worklog" (first params))
+                                                :type "POST"
+                                                :data (json-encode (second params))))
     ('createIssue (jiralib--rest-call-it
-                   "/rest/api/2/issue"
+                   "issue"
                    :type "POST"
                    :data (json-encode (list (cons 'fields (first params))))))
     ('createIssueWithParent (jiralib--rest-call-it))
     ('editComment (jiralib--rest-call-it
-                   (format "/rest/api/2/issue/%s/comment/%s" (first params) (second params))
+                   (format "issue/%s/comment/%s" (first params) (second params))
                    :data (json-encode `((body . ,(third params))))
                    :type "PUT"))
     ('getComments (org-jira-find-value (jiralib--rest-call-it
-                                        (format "/rest/api/2/issue/%s/comment" (first params))) 'comments))
+                                        (format "issue/%s/comment" (first params))) 'comments))
     ('getComponents (jiralib--rest-call-it
-                     (format "/rest/api/2/project/%s/components" (first params))))
+                     (format "project/%s/components" (first params))))
     ('getIssue (jiralib--rest-call-it
-                (format "/rest/api/2/issue/%s" (first params))))
+                (format "issue/%s" (first params))))
     ('getIssuesFromJqlSearch (append (cdr ( assoc 'issues (jiralib--rest-call-it
-                                                           "/rest/api/2/search"
+                                                           "search"
                                                            :type "POST"
                                                            :data (json-encode `((jql . ,(first params))
                                                                                 (maxResults . ,(second params))))))) nil))
     ('getPriorities (jiralib--rest-call-it
-                     "/rest/api/2/priority"))
-    ('getProjectsNoSchemes (jiralib--rest-call-it "/rest/api/2/project" :params `((expand . ,(first params)))))
+                     "priority"))
+    ('getProjectsNoSchemes (jiralib--rest-call-it "project" :params `((expand . ,(first params)))))
     ('getResolutions (append (jiralib--rest-call-it
-                              "/rest/api/2/resolution") nil))
-    ('getAvailableActions (mapcar (lambda (trans) `(,(assoc 'name trans) ,(assoc 'id trans))) (cdar (jiralib--rest-call-it
-                                                                                                     (format "/rest/api/2/issue/%s/transitions" (first params))))))
+                              "resolution") nil))
+    ('getAvailableActions
+     (let* ((issue-id (first params))
+            (data (jiralib--rest-call-it
+                   (format "issue/%s/transitions" issue-id)))
+            (transitions (cdr (assoc 'transitions data))))
+       transitions))
     ('getFieldsForAction (org-jira-find-value (car (let ((issue (first params))
                                                          (action (second params)))
                                                      (seq-filter (lambda (trans)
                                                                    (or (string-equal action (org-jira-find-value trans 'id))
                                                                        (string-equal action (org-jira-find-value trans 'name))))
                                                                  (cdar (jiralib--rest-call-it
-                                                                        (format "/rest/api/2/issue/%s/transitions" (first params))
+                                                                        (format "issue/%s/transitions" (first params))
                                                                         :params '((expand . "transitions.fields")))))))
                                               'fields))
     ('progressWorkflowAction (jiralib--rest-call-it
-                              (format "/rest/api/2/issue/%s/transitions" (first params))
+                              (format "issue/%s/transitions" (first params))
                               :type "POST"
                               :data (json-encode `(,(car (second params)) ,(car (third params))))))
     ('updateIssue (jiralib--rest-call-it
-                   (format "/rest/api/2/issue/%s" (first params))
+                   (format "issue/%s" (first params))
                    :type "PUT"
                    :data (json-encode `((fields . ,(second params))))))))
 
-(defun utf-8-parser ()
+(defun jiralib--utf-8-parser ()
   "Decode the HTTP response using the charset UTF-8."
   (decode-coding-region (point-min) (point-max) 'utf-8)
   (json-read))
 
-(cl-defun print-error (&key
-                       (data nil)
-                       (error-thrown nil)
-                       (symbol-status nil)
-                       (response response)
-                       &allow-other-keys)
+(cl-defun jiralib--report-error (&key
+                                 (data nil)
+                                 (error-thrown nil)
+                                 (symbol-status nil)
+                                 (response response)
+                                 &allow-other-keys)
   (message (concat "Error: " (pp error-thrown)))
   (message (concat "Data: " (pp data)))
   (message (concat "Symbol-Status: " (pp symbol-status)))
-  (message (concat "Response: " (pp response))))
+  (message (concat "Response: " (pp response)))
+  (error "Error accessing JIRA REST interface (%s) : %s"
+         (pp symbol-status) (pp response)))
 
 
 (defun jiralib--rest-call-it (api &rest args)
   "Invoke the corresponding jira rest method API, passing ARGS to REQUEST."
   (append (request-response-data
-           (apply #'request (concat (replace-regexp-in-string "/*$" "/" jiralib-url)
+           (apply #'request (concat (jiralib-get-baseurl)
+                                    "/rest/api/2/"
                                     (replace-regexp-in-string "^/*" "" api))
                   :sync t
                   :headers `(,jiralib-token ("Content-Type" . "application/json"))
-                  :parser 'utf-8-parser
-                  :error #'print-error
+                  :parser 'jiralib--utf-8-parser
+                  :error #'jiralib--report-error
                   args)) nil))
 
 ;;;; Some utility functions
@@ -251,9 +255,10 @@ when invoking it through `jiralib-call', the call shoulbe be:
 DATA is a list of association lists
 KEY-FIELD is the field to use as the key in the returned alist
 VALUE-FIELD is the field to use as the value in the returned alist"
-  (loop for element in data
-        collect (cons (cdr (assoc key-field element))
-                      (cdr (assoc value-field element)))))
+  (mapcar (lambda (e)
+            (cons (cdr (assoc key-field e))
+                  (cdr (assoc value-field e))))
+          data))
 
 (defun jiralib-make-assoc-list-on-cond (data key-field value-field cond-name cond-value)
   "Create an association list from a structure array matching condition.
@@ -270,10 +275,6 @@ COND-VALUE is the field to use as the value for condition"
                       (cdr (assoc value-field element)))))
 
 ;;;; Wrappers around JIRA methods
-
-(defun jiralib--rest-api-for-issue-key (key)
-  "Return jira rest api for issue KEY."
-  (concat "rest/api/2/issue/" key))
 
 (defun jiralib-update-issue (key fields)
   "Update the issue with id KEY with the values in FIELDS."
@@ -384,7 +385,7 @@ database.  An issue is assumed to be in the format KEY-NUMBER,
 where KEY is a project key and NUMBER is the issue number."
   (unless jiralib-issue-regexp
     (let ((projects (mapcar (lambda (e) (downcase (cdr (assoc 'key e))))
-                            (jiralib-call "getProjectsNoSchemes"))))
+                            (Jiralib-call "getProjectsNoSchemes"))))
       (setq jiralib-issue-regexp (concat "\\<" (regexp-opt projects) "-[0-9]+\\>"))))
   jiralib-issue-regexp)
 
@@ -577,7 +578,8 @@ will cache it."
 
 (defun jiralib-get-components (project-key)
   "Return all components available in the project PROJECT-KEY."
-  (jiralib-make-assoc-list (jiralib-call "getComponents" project-key) 'id 'name))
+  (let ((components (jiralib-call "getComponents" project-key)))
+    (jiralib-make-assoc-list components 'id 'name)))
 
 (defun jiralib-get-issue (issue-key)
   "Get the issue with key ISSUE-KEY."
@@ -606,7 +608,9 @@ Return no more than MAX-NUM-RESULTS."
   "Return a list of projects available to the user."
   (unless jiralib-projects-list
     (setq jiralib-projects-list
-          (jiralib-make-assoc-list (jiralib-call "getProjectsNoSchemes" "description,projectKeys") 'id 'key)))
+          (let ((projects
+                 (jiralib-call "getProjectsNoSchemes" "description,projectKeys")))
+            (jiralib-make-assoc-list projects 'id 'key))))
   jiralib-projects-list)
 
 (defun jiralib-get-projects-details ()
