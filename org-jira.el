@@ -266,7 +266,7 @@ Entry to this mode calls the value of `org-jira-mode-hook'."
                   (save-restriction
                     (widen)
                     (goto-char (point-min))
-                    (outline-show-all)
+                    ;;(outline-show-all)
                     (let ((p (org-find-exact-headline-in-buffer proj-headline)))
                       (if (and p (>= p (point-min))
                                (<= p (point-max)))
@@ -471,7 +471,7 @@ See`org-jira-get-issue-list'"
                                         issue-summary
                                         (org-jira-get-issue-val 'project fields))
         (progn (goto-char (point-min))
-               (outline-show-all)
+               ;;(outline-show-all)
                (org-jira-write-issue-header (org-find-entry-with-id issue-id)
                                             (org-jira-get-issue-val 'status fields)
                                             issue-summary
