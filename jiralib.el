@@ -127,7 +127,7 @@ This is maintained by `jiralib-login'.")
 
   ;;; check access to the the current user information to verify
   ;;; authentication succeeded
-  (jiralib--rest-call-it "rest/api/2/myself"))
+  (jiralib--rest-call-it "myself"))
 
 
 
