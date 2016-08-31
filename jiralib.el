@@ -385,7 +385,7 @@ database.  An issue is assumed to be in the format KEY-NUMBER,
 where KEY is a project key and NUMBER is the issue number."
   (unless jiralib-issue-regexp
     (let ((projects (mapcar (lambda (e) (downcase (cdr (assoc 'key e))))
-                            (Jiralib-call "getProjectsNoSchemes"))))
+                            (jiralib-call "getProjectsNoSchemes"))))
       (setq jiralib-issue-regexp (concat "\\<" (regexp-opt projects) "-[0-9]+\\>"))))
   jiralib-issue-regexp)
 
