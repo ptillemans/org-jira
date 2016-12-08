@@ -1070,7 +1070,7 @@ See`org-jira-get-issue-list'"
                          'org-jira-resolution-history
                          (car org-jira-resolution-history))))
         (car (rassoc resolution (jiralib-get-resolutions))))
-    (let* ((resolutions (org-jira-find-value fields 'resolution 'allowedValues))
+    (let* ((resolutions (org-jira-find-value rest-fieds 'resolution 'allowedValues))
            (resolution-name (completing-read
                              "Resolution: "
                              (mapcar (lambda (resolution)
