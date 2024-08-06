@@ -331,7 +331,7 @@ This produces a noticeable slowdown and is not recommended by
 request.el, so if at all possible, it should be avoided."
   ;; @TODO :auth: Probably pass this all the way down, but I think
   ;; it may be OK at the moment to just set the variable each time.
-  
+
   (setq jiralib-complete-callback
         ;; Don't run with async if we don't have a login token yet.
         (if jiralib-token callback nil))
@@ -467,7 +467,7 @@ request.el, so if at all possible, it should be avoided."
                                 :type "POST"
                                 :data (json-encode `(,(car (second params)) ,(car (third params))))))
       ('getUsers
-       (jiralib--rest-call-it (format "/rest/api/2/user/assignable/search?project=%s&maxResults=10000" (first params))
+       (jiralib--rest-call-paged (format "/rest/api/2/user/assignable/search?project=%s" (first params))
                               :type "GET"))
       ('updateIssue (jiralib--rest-call-it
                      (format "/rest/api/2/issue/%s" (first params))
@@ -485,6 +485,21 @@ Pass ARGS to jiralib-call."
   "Read with json, force utf-8"
   (decode-coding-region (point) (point-max) jiralib-coding-system)
   (json-read))
+
+(defun jiralib--rest-call-paged (api &rest args)
+  "Invoke the corresponding jira rest method API."
+  (let ((not-last t)
+        (start-at 0)
+        (max-results jiralib-agile-page-size)
+        (results '()))
+    (while not-last
+      (let ((response (apply 'jiralib--rest-call-it
+                       (concat  api (format "&startAt=%d&maxResults=%d" start-at max-results))
+                       args)))
+        (setq results (append results response))
+        (setq not-last (not (seq-empty-p response)))
+        (setq start-at (+ start-at max-results))))
+    results))
 
 (defun jiralib--rest-call-it (api &rest args)
   "Invoke the corresponding jira rest method API.
@@ -513,15 +528,15 @@ passing ARGS to REQUEST."
                       ((my-api api)
                        (my-args args))
                     (cl-function
-                       (lambda (&key data &allow-other-keys)
-                         (print "JIRA_ERROR - see your *Messages* buffer for more details.")
-                         (print "JIRA_ERROR REQUEST: ")
-                         (print my-api)
-                         (print my-args)
-                         (print "JIRA_ERROR RESPONSE: ")
-                         (print data)
-                         (error "JIRA_ERROR - see your *Messages* buffer for more details.")
-                         )))
+                     (lambda (&key data &allow-other-keys)
+                       (print "JIRA_ERROR - see your *Messages* buffer for more details.")
+                       (print "JIRA_ERROR REQUEST: ")
+                       (print my-api)
+                       (print my-args)
+                       (print "JIRA_ERROR RESPONSE: ")
+                       (print data)
+                       (error "JIRA_ERROR - see your *Messages* buffer for more details.")
+                       )))
                   args))
           nil))
 
@@ -558,7 +573,7 @@ first is normally used."
 
 DATA is a list of association lists (a SOAP array-of type)
 KEY-FIELD is the field to use as the key in the returned alist
-VALUE-FIELD is the field to use as the value in the returned alist"  
+VALUE-FIELD is the field to use as the value in the returned alist"
   (cl-loop for element in data
         collect (cons (cdr (assoc key-field element))
                       (cdr (assoc value-field element)))))
